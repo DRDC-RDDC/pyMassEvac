@@ -1,0 +1,13 @@
+name: mass_evacuation
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.9
+  - pip
+  - pandas
+  - numpy
+  - matplotlib
+  - pip:
+    - pdfcropmargins
+    - gymnasium
