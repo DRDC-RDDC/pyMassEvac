@@ -1,13 +1,14 @@
-name: mass_evacuation
+name: gym-mass_evacuation
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.9
+  - python>=3.11
   - pip
   - pandas
   - numpy
   - matplotlib
+  - gymnasium
   - pip:
     - pdfcropmargins
     - gymnasium

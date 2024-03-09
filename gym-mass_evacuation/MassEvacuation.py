@@ -8,8 +8,10 @@ import random
 from MutablePriorityQueue import MutablePriorityQueue
 
 """
-Define environment for a mass evacuation that can be done via helicopter and 
-can load people onto a ship in which their health improves.
+Define an environment for a mass evacuation scenario. The evacuation of 
+individuals is performed via helicopter, but there is also a ship on site
+which can assist in improving the medical condition of individuals at the
+evacuation location.
 
 Documentation to create a custom environment is provided at:
 https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/
@@ -21,11 +23,31 @@ class MassEvacuation(gym.Env):
     Custom gymnasium environment to study the transport of individuals from an evacuation site to a forward operating location.
     """
     
-    def __init__(self, seed = None):
+    def __init__(self, seed = None, default_rng = True):
+        """Initialization of a new MassEvacuation gymnasium environment.
 
+        Creates a new MassEvacuation gymnasium environment object. The 
+        object contains the initial state S_0, defines the state S_k, 
+        observation space, action space, and the queue that stores the 
+        event arrival and inter-arrival times. In addition, the initial 
+        transition times of individuals between medical triage states are 
+        computed. This information is deemed exogenous and is not knowable by 
+        the decision maker when deciding who to load on the helicopters, ships, 
+        or unload from ships.
+
+        Note: In Rempel (2024), seed was set to 20180529 and default_rng
+        was set to False.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Random seed, by default None
+        default_rng : bool, optional
+            True if the numpy default_rng is to be used, False if RandomState is to be used, by default True
+        """
         super(MassEvacuation, self).__init__()
         
-        # Define the initial state S_0 - see Table 5
+        # Define the initial state S_0 - see Table 5 in Rempel (2024).
         self.initial_state = {
             'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
             'm_s' : {'green' : 48, 'yellow' : 72, 'red' : 120},
@@ -44,24 +66,29 @@ class MassEvacuation(gym.Env):
             'initial_ship_arrival' : [0]
         }
         
-        if seed == None:
-            self.rng = np.random.default_rng()
+        # Define the random number generator. 
+        if default_rng == True:
+            self.rng = np.random.default_rng(seed)
         else: 
             self.rng = np.random.RandomState(seed)
 
-        # initialize the priority queue. note that the state variable does not
+        # Initialize the priority queue. Note that the state variable does not
         # have access to this queue.
         self.queue = MutablePriorityQueue()        
 
+        # Add the arrival of the helicopters and ships to the event queue. The # arrival times defined in the initial state S_0 are relative to the
+        # arrival of the individuals at the evacuation site.
         for i in range(len(self.initial_state['initial_helo_arrival'])):
             self.queue.put(self.initial_state['initial_helo_arrival'][i], 1)
 
         for i in range(len(self.initial_state['initial_ship_arrival'])):
             self.queue.put(self.initial_state['initial_ship_arrival'][i], 2)
 
+        # Update the queue such that the arrival times of the events are 
+        # relative to each previous event.
         self.queue.setRelative()
         
-        # Define the initial values of the state variable
+        # Define the initial values of the state variable S_k.
         self.state = {
             'tau_k' : 0,
             'e_k' : 0,
@@ -69,7 +96,8 @@ class MassEvacuation(gym.Env):
             'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0}
         }
 
-        # Define the observation space - this is the state space of the environment. See the definition of the state variable
+        # Define the observation space - this is the state space of the 
+        # environment. See the definition of the state variable
         # in equation (1).
         self.observation_space = gym.spaces.Dict(
             { 
@@ -80,10 +108,12 @@ class MassEvacuation(gym.Env):
             }
         )
 
-        # Define the action space - this is the set of decisions that can be taken. See the definition in section 4.1.2. Note
-        # that is definition does not include the constraints on the decisions; those constraints (equations (2), (3), (5),
-        # and (6) would need to be handled in the decision policies for loading a helicopter, loading the ship, and unloading
-        # the ship.
+        # Define the action space - this is the set of decisions that can be 
+        # taken. See the definition in section 4.1.2. Note that is definition 
+        # does not include the constraints on the decisions; those constraints 
+        # (equations (2), (3), (5), and (6) would need to be handled in the 
+        # decision policies for loading a helicopter, loading the ship, and 
+        # unloading the ship.
         self.action_space = gym.spaces.Dict(
             {
                 'x_hl_k' : gym.spaces.Box(0, 10, shape = (1,4), dtype = np.intc),
@@ -92,9 +122,10 @@ class MassEvacuation(gym.Env):
             }
         )
 
-        # Create a data frame that stores the exogenous medical transition times for all individuals that are at the 
-        # evacuation site or onboard the ship. Note that this information is not part of the observation, but is part of the
-        # enivronment.
+        # Create a data frame that stores the exogenous medical transition 
+        # times for all individuals that are at the evacuation site or onboard 
+        # the ship. Note that this information is not part of the observation, 
+        # but is part of the enivronment.
         self.exog_med_transitions_evac = pd.DataFrame(columns = 
                                                       ['arrival_time',
                                                        'category',
@@ -103,6 +134,7 @@ class MassEvacuation(gym.Env):
                                                        'yellow',
                                                        'red',
                                                        'black'])
+        
         self.exog_med_transitions_ship = pd.DataFrame(columns = 
                                                       ['arrival_time',
                                                        'category',
@@ -112,22 +144,37 @@ class MassEvacuation(gym.Env):
                                                        'red',
                                                        'black'])
 
+        # Add the initial individuals to the self.exog_med_transitions_evac
+        # data frame and randomly select their transition times between 
+        # medical triage categories. 
         self._add_individuals(self.state['rho_e_k'], 'evac')
         
+        # Make a copy of each exogenous data frame. These are used in the 
+        # reset method to set the environment to its initial state.
         self.initial_med_transitions_evac = copy.deepcopy(self.exog_med_transitions_evac)
         self.initial_med_transitions_ship = copy.deepcopy(self.exog_med_transitions_ship)
 
-        #self.actions = actions
-        #self.observations = observations
-        #self.action_space = heartpole_action_space
-        #self.observation_space = make_mass_evacuation_obs_space()
-        #self.log = ''
-        #self.max_steps = max_steps
+        return
 
     def _compute_reward(self, action):
+        """Compute the contribution for taking an action.
 
-        """
-        Compute the contribution for taking an action, i.e., the number of individuals loaded onto a helicopter
+        The contribution function C(S_k, x_k) is the immediate reward 
+        received when making a decision. See equation (8) in Rempel (2024).
+
+        Parameters
+        ----------
+        action : dict
+            A dict of actions to load a helicopter 'x_hl_k', load a ship
+            'x_sl_k', and unload a ship 'x_su_k'. Each is a dict of the number
+            of individuals selected from the white, green, yellow, and
+            red triage categories.
+
+        Returns
+        -------
+        int
+            The reward received when loading a helicopter, i.e., the number
+            of individuals loaded onto the helicopter. 
         """
 
         # Define the default reward
@@ -140,20 +187,40 @@ class MassEvacuation(gym.Env):
         return reward
     
     def observation(self):
+        """Get the current state S_k.
 
-        return
+        Returns
+        -------
+        dict
+            The current state of the environment S_k as defined in equation (1) 
+            of Rempel (2024).
+        """
+
+        return self.state
 
     def reset(self, single_scenario = True):
+        """Reset the environment.
 
+        Reset the environment to its initial state. The reset can occur such 
+        that a single scenario is used, as in Rempel (2024), or a different
+        randomly scenario is initiated. The difference between these two 
+        options is the sampled inter-transition times between medical categories
+        for individuals. When single_scenario is True, the times generated in
+        the __init__ method are used; when single_sceanrio is False, new times
+        are sampled.
+
+        Parameters
+        ----------
+        single_scenario : bool, optional
+            If True, use the sampled medical category transition times given in the __init__ function; if False, sample new transition times, by default True.
+
+        Returns
+        -------
+        observation : dict
+            Initial state of the reset environment.
+        info : None
+            Required by gymnasium, but not used.
         """
-        Reset the environment.
-        """
-        
-        # Reset the state to the initial state. The state variable consists of four variables:
-        # tau_k : system time
-        # e_k : event code that describes the type of event that is being processed
-        # p_e_k : the number of individuals in each triage category at the evacuation site
-        # p_s_k : the number of individuals in each triage category onboard the ship
 
         # Reset the state to its original values
         self.state = {
@@ -173,8 +240,11 @@ class MassEvacuation(gym.Env):
         for i in range(len(self.initial_state['initial_ship_arrival'])):
             self.queue.put(self.initial_state['initial_ship_arrival'][i], 2)
 
+        # Set the arrival times in the queue as relative
         self.queue.setRelative()
 
+        # If a single sceanrio is selected, reset the individual's medical
+        # transition times to those generated in the __init__ method.
         if single_scenario:
 
             self.exog_med_transitions_evac = copy.deepcopy(self.initial_med_transitions_evac)
@@ -182,7 +252,9 @@ class MassEvacuation(gym.Env):
 
         else:
 
-            # multi-sceanrio
+            # Multi-sceanrio in terms of the sampled transition times, not the
+            # initial number of individuals in each triage category at the 
+            # evacuation site
 
             # Reset the exogenous information that describes transitions of the
             # individuals between medical triage levels
@@ -199,11 +271,35 @@ class MassEvacuation(gym.Env):
         return observation, info
 
     def step(self, action):
+        """Transition the environment to the next state.
 
-        """
-        This implements the two portions of the sequential decision model (see Figure 3.1 in Sutton and Barto,
-        Reinforcement Learning: An Introduction), the computation of the contribution function (reward) and
-        the transition function (next state, S_{t + 1}. For a description, see Section 4.1.3 in the paper.
+        This method performs three steps. First, it computes the immediate 
+        reward that is received if the decision taken was to load a helicopter.
+        Second, it determines the exogenous information W_{k + 1} that arrives
+        after the decision was made (see Section 4.1.3 of Rempel (2024)). Third,
+        is implements the transition function S^m(S_k, x_k, W_{k + 1}) that 
+        determines the next state.
+
+        Parameters
+        ----------
+        action : dict
+            A dict of actions to load a helicopter 'x_hl_k', load a ship
+            'x_sl_k', and unload a ship 'x_su_k'. Each is a dict of the number
+            of individuals selected from the white, green, yellow, and
+            red triage categories.
+
+        Returns
+        -------
+        nextState : dict
+            The next state S_{k + 1}.
+        reward : int
+            The contribution received is the decision taken was to load a helicopter.
+        terminated : boolean
+            True if the environment was stopped, False otherwise.
+        truncated : boolean
+            True if the environment was stopped, False otherwise.
+        info : dict
+            Not used.
         """
 
         nextState = copy.deepcopy(self.state)
