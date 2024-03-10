@@ -327,9 +327,27 @@ class MassEvacuation(gym.Env):
         return nextState, reward, terminated, truncated, info
     
     def close(self):
-        pass
+        """Close the mass evacuation environment.
+
+        This method closes the mass evacuation environment. It performs
+        no actions.
+        """
+    
+        return
 
     def render(self, mode = None):
+        """Compute the render frames as specified by render_mode during the initialization of the environment.
+
+        This function does not perform any actions. No render is computed.
+
+        Parameters
+        ----------
+        mode : str, optional
+            The render mode of the environment, by default None
+        """
+
+        if mode != None:
+            print('Render modes are not supported.')
 
         return
 
@@ -341,11 +359,24 @@ class MassEvacuation(gym.Env):
 
     # Function to add individuals to a location, either the evacuation site 'evac' or the 'ship'.
     def _add_individuals(self, decision, location):
+        """Add individuals to a location's exogenous information data frame.
 
-        """
-        Add individuals to either the ship (from the evacuation site) or to the evacuation site (from the ship).
+        Given the decision to add individuals to a location, either 'ship' or
+        'evac', create new rows in the exogenous information data frame and
+        sample the individual's transition time between the allowed medical
+        triage categories.
+
+        Parameters
+        ----------
+        decision : dict
+            A dict that describes the number of individuals in each triage
+            category that are being moved to a location.
+        location : str
+            Either 'evac' or 'ship'.
         """
         
+        # Define the valid transitions between triage categories that are 
+        # allowed to occur at the evacuatio location and onboard the ship.
         valid_transitions_evac = {'white' : ['white', 'green', 'yellow','red'], 
                                   'green' : ['green', 'yellow', 'red'], 
                                   'yellow' : ['yellow', 'red'], 
@@ -356,9 +387,13 @@ class MassEvacuation(gym.Env):
                                   'yellow' : ['yellow', 'green'], 
                                   'red' : ['red', 'yellow', 'green']}
 
+        # The decision to add a person to a location is a dict, which
+        # contains the number of individuals per triage category.
         for k, v in decision.items():
             for i in range(v):
                 
+                # Set the individual's arrival time at the location
+                # and their triage category.
                 individual = dict()
                 individual['arrival_time'] = self.state['tau_k']
                 individual['category'] = k
@@ -368,6 +403,9 @@ class MassEvacuation(gym.Env):
 
                 if (location == 'evac'):
 
+                    # Sample the individual's transition times between medical
+                    # categories if the person is being moved from the ship to
+                    # the evacuation location.
                     last_category = ''
                     for l in valid_transitions_evac[k]:
 
@@ -390,6 +428,9 @@ class MassEvacuation(gym.Env):
 
                 elif (location == 'ship'):
 
+                    # Sample the individual's transition times between medical
+                    # categories if the person is being moved from the ship to
+                    # the evacuation location.
                     last_category = ''
                     for l in valid_transitions_ship[k]:
 
@@ -411,13 +452,27 @@ class MassEvacuation(gym.Env):
                             pd.DataFrame(individual, index = [0])],
                             ignore_index = True)
 
+        # Reset the data frame indicies.
         self.exog_med_transitions_evac.reset_index()
-        self.exog_med_transitions_evac.reset_index()
+        self.exog_med_transitions_ship.reset_index()
 
         return
 
     # Function to remove individuals from a location.
     def _remove_individuals(self, decision, location):
+        """Remove individuals from location's exogenous information data frame.
+
+        Given the decision to move individuals to a location, either 'ship' or
+        'evac', this method removes rows in the exogenous information data frame based on the decision taken.
+
+        Parameters
+        ----------
+        decision : dict
+            A dict that describes the number of individuals in each triage
+            category that are being moved to a location.
+        location : str
+            Either 'evac' or 'ship'.
+        """
 
         idx = list()
         for k, v in decision.items():
@@ -427,6 +482,7 @@ class MassEvacuation(gym.Env):
             if location == 'evac':
 
                 idx = self.exog_med_transitions_evac[self.exog_med_transitions_evac['category'] == k].index.to_list()
+
             elif location == 'ship':
 
                 idx = self.exog_med_transitions_ship[self.exog_med_transitions_ship['category'] == k].index.to_list()
@@ -451,7 +507,28 @@ class MassEvacuation(gym.Env):
         return
 
     def _update_medical_condition(self, tau_hat_k, location):
-            
+        """Update the medical triage categories of individuals at a location.
+
+        Given the time between when a decision is made and the next decision,
+        the medical conditions of individuals at a location change. This method
+        updates the exogenous information data frame and returns the 
+        exogenous information delta_hat_e_k and delta_hat_s_k. See section 4.1.3
+        of Rempel (2024).
+
+        Parameters
+        ----------
+        tau_hat_k : int
+            Inter-transition time to the next event k + 1.
+        location : str
+            Either 'evac' or 'ship'.
+
+        Returns
+        -------
+        dict
+            Either delta_hat_e_k (if location == 'evac') or delta_hat_s_k (if
+            location == 'ship').
+        """
+
         # define delta_hat_e_k and delta_hat_s_k, which are the change in the
         # number of individuals in each triage category at the evacuation site
         # and onboard the ship respectively
@@ -523,9 +600,33 @@ class MassEvacuation(gym.Env):
             return delta_hat_s_k
 
     def _compute_delta_hat_k(self, tau_hat_k, decision):
+        """Compute the updated number of individuals in each triage category.
 
-        """
-        This function computes the first and second component of the W_{k + 1} vector of exogenous information.
+        This method computes the updated number of individuals in each triage
+        category at the evacuation site and onboard the ship. These are the 
+        first two components of the exogenous information vector W_{k + 1},
+        more specifically delta_hat_e_{k + 1} and delta_hat_s_{k + 1}. See
+        equation (7) in Rempel (2024).
+
+        These changes are based not only on the time to the next event k + 1
+        as presented by tau_hat_k, but also the decision that has been taken
+        to load the helicopter, load the ship, or unload the ship.
+
+        Parameters
+        ----------
+        tau_hat_k : int
+            Inter-transition time to the next event k + 1.
+        decision : dict
+            A dict that describes the number of individuals in each triage
+            category that are being moved to a location.        
+
+        Returns
+        -------
+        dict
+            A dictionary with two key-value pairs, 'delta_hat_e_k' and
+            'delta_hat_s_k' that represent the updated number of individuals
+            in each medical condition at the evacuation site and onboard the
+            ship.
         """
         
         # define delta_hat_e_k and delta_hat_s_k, which are the change in the
@@ -607,21 +708,38 @@ class MassEvacuation(gym.Env):
         return {'delta_hat_e_k': delta_hat_e_k, 'delta_hat_s_k' : delta_hat_s_k}
 
     def _exog_info_fn(self, decision):
+        """Get the exogenous information that arrives after a decision is made.
 
-        """
-        This function returns the W_{t + 1} vector that represents the 
-        exogenous information that arrives after a decision is made. This consists of four components:
+        This method returns the W_{k + 1} vector that represents the 
+        exogenous information that arrives after a decision is made. See
+        equation (7) in Rempel (2024). This consists of four components:
 
-        - change in the number of individuals in each triage category at the evacuation site (delta_hat_e_k);
-        - change in the number of individuals in each triage category on the ship (delta_hat_s_k);
-        - event which triggers the next state (e_hat_k). these may be:
+        - updated number of individuals in each triage category at the evacuation site (delta_hat_e_{k + 1});
+        - updated number of individuals in each triage category on the ship (delta_hat_s_{k + 1});
+        - event which triggers the next state (e_hat_{k + 1}). these may be:
             - 0: all individuals have arrived at the evac site
             - 1: helo arrives at the evac site and is ready to load individuals
-            - 2: ship arrives at the evac site and is ready to load individuals
+            - 2: ship is ready to load individuals
             - 3: ship is ready to unload individuals
-        - the inter transition time to the next event (tau_hat_k)
-        """
+        - the inter-transition time to the next event (tau_hat_{k + 1})
 
+        For readability in the code, k + 1 is dropped from the variables and 
+        instead only k is used.
+
+        Parameters
+        ----------
+        decision : dict
+            A dict that describes the number of individuals in each triage
+            category that are being moved to a location.    
+
+        Returns
+        -------
+        dict
+            A dict with four key-value pairs that represent the W_{k + 1}
+            exogenous information vector. The four key-value pairs on
+            delta_hat_e_k, delta_hat_s_k, e_hat_k, and tau_hat_k.
+        """
+        
         delta_hat_e_k = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
         delta_hat_s_k = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
 
@@ -661,8 +779,29 @@ class MassEvacuation(gym.Env):
         return {'delta_hat_e_k': medical_transition['delta_hat_e_k'],
                  'delta_hat_s_k': medical_transition['delta_hat_s_k'], 'e_hat_k': e_hat_k, 'tau_hat_k': tau_hat_k}
 
-    # This function defines S_{k + 1} = S^M(S_k, X^Pi(S_k), W_{k + 1})
+
     def _transition_fn(self, decision, exog_info):
+        """Compute the next state S_{k + 1}.
+
+        This method implements the transition function described in section
+        4.1.3 of Rempel (2024) - S_{k + 1} = S^M(S_k, x_k, W_{k + 1}).
+
+        Parameters
+        ----------
+        decision : dict
+            A dict that describes the number of individuals in each triage
+            category that are being moved to a location.    
+        exog_info : dict
+            Exogenous information that arrives after a decision is made. 
+            Contains four key-value pairs delta_hat_e_k, delta_hat_s_k,
+            e_hat_k, and tau_hat_k. 
+
+        Returns
+        -------
+        dict
+            Next state S_{k + 1}. Contains four key-value pairs: tau_k,
+            rho_e_k, rho_s_k, and e_k. See equation (1) in Rempel (2024).
+        """
 
         tau_k = self.state['tau_k'] + exog_info['tau_hat_k']
 
