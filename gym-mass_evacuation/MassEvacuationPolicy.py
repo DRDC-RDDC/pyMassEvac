@@ -10,12 +10,38 @@ import math
 class MassEvacuationPolicy():
 
     def __init__(self):
-        """
+        """Initialize a policy object.
+
+        The policy class contains the set of policy function
+        approximations that were explored in Rempel (2024):
+        green-first loading policy, yellow-first loading policy,
+        critical-first loading policy, random loading / unloading
+        policy, white-tags only unloading policy. See Table 4
+        in Rempel (2024).
+
+        In addition, a do_nothing policy is implemented.
+
+        Since there is nothing to initialize for this class, the
+        __init__ function does not perform any actions.
         """
 
         return
 
     def do_nothing(self):
+        """This policy returns a decision to do nothing.
+
+        This policy returns a decision to do nothing. It may be
+        used for testing purposes, or to implement a situation in
+        which the helicopter or ship effectively do not make a
+        decision.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
+        """
 
         # This decision policy does nothing
         decision = {'white': 0, 
@@ -27,12 +53,31 @@ class MassEvacuationPolicy():
         return decision
 
     def greenFirstLoadingPolicy(self, state, params):
-        
-        """
-        this function implements the green-first policy for a helicopter
-        :param state: namedtuple - the state of the model at a given time
-        :param info_tuple: tuple - contains the parameters needed to run the policy
-        :return: a decision made based on the policy
+        """Green-first loading policy.
+
+        This method implements the green-first loading policy. It
+        prioritizes selecting individuals in triage categories as
+        follows: green, white, red, yellow.
+
+        Parameters
+        ----------
+        state : dict
+            State of the mass evacuation problem as described in
+            equation (1) in Rempel (2024). Dict contains four 
+            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+        params : dict
+            Policy parameters that provide constraints on the 
+            decision: total_capacity is the total capacity available 
+            at the location where the individuals will be loaded;
+            individual_capacity is the amount of space each triage
+            category consumes at the location.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
         """
 
         # Extract the policy parameters
@@ -108,12 +153,31 @@ class MassEvacuationPolicy():
         return decision
 
     def yellowFirstLoadingPolicy(self, state, params):
+        """Yellow-first loading policy.
 
-        """
-        this function implements the yellow-first policy for a helo / ship
-        :param state: namedtuple - the state of the model at a given time
-        :param info_tuple: tuple - contains the parameters needed to run the policy
-        :return: a decision made based on the policy
+        This method implements the yellow-first loading policy. It
+        prioritizes selecting individuals in triage categories as
+        follows: yellow, white, green, red.
+
+        Parameters
+        ----------
+        state : dict
+            State of the mass evacuation problem as described in
+            equation (1) in Rempel (2024). Dict contains four 
+            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+        params : dict
+            Policy parameters that provide constraints on the 
+            decision: total_capacity is the total capacity available 
+            at the location where the individuals will be loaded;
+            individual_capacity is the amount of space each triage
+            category consumes at the location.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
         """
 
         # Extract the policy parameters
@@ -183,11 +247,31 @@ class MassEvacuationPolicy():
         return decision
 
     def criticalFirst_loading_policy(self, state, params):
-        """
-        this function implements the critial-first policy for a helo / ship
-        :param state: namedtuple - the state of the model at a given time
-        :param info_tuple: tuple - contains the parameters needed to run the policy
-        :return: a decision made based on the policy
+        """Critical-first loading policy.
+
+        This method implements the critical-first loading policy. It
+        prioritizes selecting individuals in triage categories as
+        follows: red, yellow, green, white.
+
+        Parameters
+        ----------
+        state : dict
+            State of the mass evacuation problem as described in
+            equation (1) in Rempel (2024). Dict contains four 
+            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+        params : dict
+            Policy parameters that provide constraints on the 
+            decision: total_capacity is the total capacity available 
+            at the location where the individuals will be loaded;
+            individual_capacity is the amount of space each triage
+            category consumes at the location.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
         """
 
         # Extract the policy parameters
@@ -258,6 +342,33 @@ class MassEvacuationPolicy():
         return decision
 
     def random_loading_policy(self, state, params):
+        """Random loading policy.
+
+        This method implements the random loading policy. It
+        does not prioritize individuals based on medical triage category,
+        rather it randomly selects individuals.
+
+        Parameters
+        ----------
+        state : dict
+            State of the mass evacuation problem as described in
+            equation (1) in Rempel (2024). Dict contains four 
+            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+        params : dict
+            Policy parameters that provide constraints on the 
+            decision: total_capacity is the total capacity available 
+            at the location where the individuals will be loaded;
+            individual_capacity is the amount of space each triage
+            category consumes at the location.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
+        """
+
 
         # Extract the policy parameters
         totalCapacity = params['total_capacity']
@@ -307,6 +418,30 @@ class MassEvacuationPolicy():
         return decision
 
     def random_unloading_policy(self, state, params):
+        """Random unloading policy.
+
+        This method implements the random unloading policy. It
+        does not prioritize individuals based on medical triage category,
+        rather it randomly selects individuals.
+
+        Parameters
+        ----------
+        state : dict
+            State of the mass evacuation problem as described in
+            equation (1) in Rempel (2024). Dict contains four 
+            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+        params : dict
+            Policy parameters that provide constraints on the 
+            decision: numToUnload is the total number of individuals
+            that will be selected to be unloaded.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
+        """
 
         # Extract the policy parameters
         numToUnload = params['numToUnload']
@@ -341,6 +476,27 @@ class MassEvacuationPolicy():
         return decision
 
     def white_unloading_policy(self, state):
+        """White-tags only unloading policy.
+
+        This method implements the white-tags only unloading policy. It
+        does not prioritize individuals based on medical triage category,
+        rather it selects only those individuals in the white-tag category.
+
+        Parameters
+        ----------
+        state : dict
+            State of the mass evacuation problem as described in
+            equation (1) in Rempel (2024). Dict contains four 
+            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+
+        Returns
+        -------
+        dict
+            Decision with four key-value pairs that describe the
+            number of individuals that have been selected to take
+            an action in each medical triage category.
+        """
+
 
         # Initialize the decision
         decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
