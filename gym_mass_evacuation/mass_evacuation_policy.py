@@ -80,75 +80,76 @@ class MassEvacuationPolicy():
             an action in each medical triage category.
         """
 
-        # Extract the policy parameters
-        totalCapacity = params['total_capacity']
-        individualCapacity = params['individual_capacity']
-    
         # define the default decision
         decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
 
-        # check the number of individuals that are available to be loaded at
-        # the evacuation site
-        numLoaded = 0
-        numAvailableTotal = 0
-        numAvailable = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
-        for k in state['rho_e_k'].keys():
-            if k != 'black':
-                numAvailable[k] = state['rho_e_k'][k]
-                numAvailableTotal += state['rho_e_k'][k]
+        if (state['e_k'] != 3):
+            # Extract the policy parameters
+            totalCapacity = params['total_capacity']
+            individualCapacity = params['individual_capacity']
 
-        # Compute the minimum capacity that can be loaded across the medical
-        # conditions. This is required to cover an edge case in the policy.
-        # capacity = info_tuple['capacity']
-        minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black'}.values())
-
-        # get the capacity of the helicopter / ship
-        if state['e_k'] == 2:
-
-            # loading a ship - subtract the space that is consumed onboard the ship to calculate the remaining available
-            # capacity
-            for k in state['rho_s_k'].keys():
+            # check the number of individuals that are available to be loaded at
+            # the evacuation site
+            numLoaded = 0
+            numAvailableTotal = 0
+            numAvailable = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
+            for k in state['rho_e_k'].keys():
                 if k != 'black':
-                    totalCapacity -= state['rho_s_k'][k] * individualCapacity[k]
+                    numAvailable[k] = state['rho_e_k'][k]
+                    numAvailableTotal += state['rho_e_k'][k]
 
-        capacityConsumed = 0
-        while (capacityConsumed < totalCapacity) and (numLoaded < numAvailableTotal) and (minIndividualCapacityNeeded <= totalCapacity - capacityConsumed):
+            # Compute the minimum capacity that can be loaded across the medical
+            # conditions. This is required to cover an edge case in the policy.
+            # capacity = info_tuple['capacity']
+            minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black'}.values())
 
-            # check if an individual with a green medical condition is available
-            # to be loaded
-            if numAvailable['green'] > 0:
+            # get the capacity of the helicopter / ship
+            if state['e_k'] == 2:
 
-                if (capacityConsumed + individualCapacity['green']) <= totalCapacity:
-                    decision['green'] += 1
-                    numLoaded += 1
-                    capacityConsumed += individualCapacity['green']
-                    numAvailable['green'] -= 1
+                # loading a ship - subtract the space that is consumed onboard 
+                # the ship to calculate the remaining available capacity
+                for k in state['rho_s_k'].keys():
+                    if k != 'black':
+                        totalCapacity -= state['rho_s_k'][k] * individualCapacity[k]
 
-            elif numAvailable['white'] > 0:
+            capacityConsumed = 0
+            while (capacityConsumed < totalCapacity) and (numLoaded < numAvailableTotal) and (minIndividualCapacityNeeded <= totalCapacity - capacityConsumed):
 
-                if (capacityConsumed + individualCapacity['white']) <= totalCapacity:
-                    decision['white'] += 1
-                    numLoaded += 1
-                    capacityConsumed += individualCapacity['white']
-                    numAvailable['white'] -= 1
+                # check if an individual with a green medical condition is available
+                # to be loaded
+                if numAvailable['green'] > 0:
 
-            elif numAvailable['red'] > 0:
+                    if (capacityConsumed + individualCapacity['green']) <= totalCapacity:
+                        decision['green'] += 1
+                        numLoaded += 1
+                        capacityConsumed += individualCapacity['green']
+                        numAvailable['green'] -= 1
 
-                if (capacityConsumed + individualCapacity['red']) <= totalCapacity:
-                    decision['red'] += 1
-                    numLoaded += 1
-                    capacityConsumed += individualCapacity['red']
-                    numAvailable['red'] -= 1
+                elif numAvailable['white'] > 0:
 
-            elif numAvailable['yellow'] > 0:
+                    if (capacityConsumed + individualCapacity['white']) <= totalCapacity:
+                        decision['white'] += 1
+                        numLoaded += 1
+                        capacityConsumed += individualCapacity['white']
+                        numAvailable['white'] -= 1
 
-                if (capacityConsumed + individualCapacity['yellow']) <= totalCapacity:
-                    decision['yellow'] += 1
-                    numLoaded += 1
-                    capacityConsumed += individualCapacity['yellow']
-                    numAvailable['yellow'] -= 1
+                elif numAvailable['red'] > 0:
 
-            minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black' and numAvailable[key] != 0}.values(), default = 0)                    
+                    if (capacityConsumed + individualCapacity['red']) <= totalCapacity:
+                        decision['red'] += 1
+                        numLoaded += 1
+                        capacityConsumed += individualCapacity['red']
+                        numAvailable['red'] -= 1
+
+                elif numAvailable['yellow'] > 0:
+
+                    if (capacityConsumed + individualCapacity['yellow']) <= totalCapacity:
+                        decision['yellow'] += 1
+                        numLoaded += 1
+                        capacityConsumed += individualCapacity['yellow']
+                        numAvailable['yellow'] -= 1
+
+                minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black' and numAvailable[key] != 0}.values(), default = 0)                    
 
         return decision
 
@@ -180,69 +181,71 @@ class MassEvacuationPolicy():
             an action in each medical triage category.
         """
 
-        # Extract the policy parameters
-        totalCapacity = params['total_capacity']
-        individualCapacity = params['individual_capacity']
-
         # define the default decision
         decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
 
-        # check the number of individuals that are available to be loaded at
-        # the evacuation site
-        numLoaded = 0
-        numAvailableTotal = 0
-        numAvailable = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
-        for k in state['rho_e_k'].keys():
-            if k != 'black':
-                numAvailable[k] = state['rho_e_k'][k]
-                numAvailableTotal += state['rho_e_k'][k]
+        if (state['e_k'] != 3):
+            # Extract the policy parameters
+            totalCapacity = params['total_capacity']
+            individualCapacity = params['individual_capacity']
 
-        # Compute the minimum capacity that can be loaded across the medical
-        # conditions. This is required to cover an edge case in the policy.
-        minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black'}.values())
+            # check the number of individuals that are available to be loaded at
+            # the evacuation site
+            numLoaded = 0
+            numAvailableTotal = 0
+            numAvailable = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
+            for k in state['rho_e_k'].keys():
+                if k != 'black':
+                    numAvailable[k] = state['rho_e_k'][k]
+                    numAvailableTotal += state['rho_e_k'][k]
 
-        # get the capacity of the helicopter / ship
-        if state['e_k'] == 2:
+            # Compute the minimum capacity that can be loaded across the medical
+            # conditions. This is required to cover an edge case in the policy.
+            minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black'}.values())
 
-            # loading a ship
-            for k in state['rho_s_k'].keys():
-                totalCapacity -= state['rho_s_k'][k] * individualCapacity[k]
+            # get the capacity of the helicopter / ship
+            if state['e_k'] == 2:
 
-        capacityConsumed = 0
-        while (capacityConsumed < totalCapacity) and (numLoaded < numAvailableTotal) and (minIndividualCapacityNeeded <= totalCapacity - capacityConsumed):
+                # loading a ship - subtract the space that is consumed onboard 
+                # the ship to calculate the remaining available capacity
+                for k in state['rho_s_k'].keys():
+                    if k != 'black':
+                        totalCapacity -= state['rho_s_k'][k] * individualCapacity[k]
 
-            # check if an individual with a yellow medical condition is available
-            # to be loaded
-            if (numAvailable['yellow'] > 0) & (capacityConsumed + individualCapacity['yellow'] <= totalCapacity):
+            capacityConsumed = 0
+            while (capacityConsumed < totalCapacity) and (numLoaded < numAvailableTotal) and (minIndividualCapacityNeeded <= totalCapacity - capacityConsumed):
 
-                decision['yellow'] += 1
-                numLoaded += 1
-                capacityConsumed += individualCapacity['yellow']
-                numAvailable['yellow'] -= 1
+                # check if an individual with a yellow medical condition is available
+                # to be loaded
+                if (numAvailable['yellow'] > 0) & (capacityConsumed + individualCapacity['yellow'] <= totalCapacity):
 
-            elif (numAvailable['white'] > 0) & (capacityConsumed + individualCapacity['white'] <= totalCapacity):
+                    decision['yellow'] += 1
+                    numLoaded += 1
+                    capacityConsumed += individualCapacity['yellow']
+                    numAvailable['yellow'] -= 1
 
-                decision['white'] += 1
-                numLoaded += 1
-                capacityConsumed += individualCapacity['white']
-                numAvailable['white'] -= 1
+                elif (numAvailable['white'] > 0) & (capacityConsumed + individualCapacity['white'] <= totalCapacity):
 
-            elif (numAvailable['green'] > 0) & (capacityConsumed + individualCapacity['green'] <= totalCapacity):
+                    decision['white'] += 1
+                    numLoaded += 1
+                    capacityConsumed += individualCapacity['white']
+                    numAvailable['white'] -= 1
 
-                decision['green'] += 1
-                numLoaded += 1
-                capacityConsumed += individualCapacity['green']
-                numAvailable['green'] -= 1
+                elif (numAvailable['green'] > 0) & (capacityConsumed + individualCapacity['green'] <= totalCapacity):
 
-            elif (numAvailable['red'] > 0) & (capacityConsumed + individualCapacity['red'] <= totalCapacity):
+                    decision['green'] += 1
+                    numLoaded += 1
+                    capacityConsumed += individualCapacity['green']
+                    numAvailable['green'] -= 1
 
-                decision['red'] += 1
-                numLoaded += 1
-                capacityConsumed += individualCapacity['red']
-                numAvailable['red'] -= 1
+                elif (numAvailable['red'] > 0) & (capacityConsumed + individualCapacity['red'] <= totalCapacity):
 
-            minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black' and numAvailable[key] != 0}.values(), default = 0)                    
+                    decision['red'] += 1
+                    numLoaded += 1
+                    capacityConsumed += individualCapacity['red']
+                    numAvailable['red'] -= 1
 
+                minIndividualCapacityNeeded = min({key: value for key, value in individualCapacity.items() if key != 'black' and numAvailable[key] != 0}.values(), default = 0)                    
 
         return decision
 
