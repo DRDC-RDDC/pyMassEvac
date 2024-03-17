@@ -5,7 +5,7 @@ import copy
 import math
 import random
 
-from MutablePriorityQueue import MutablePriorityQueue
+from gym_mass_evacuation.mutable_priority_queue import MutablePriorityQueue
 
 """
 Define an environment for a mass evacuation scenario. The evacuation of 
