@@ -1,4 +1,7 @@
 import pytest
+import numpy as np
+import pandas as pd
+
 from gym_mass_evacuation import mass_evacuation
 
 def test_compute_reward_1():
@@ -189,3 +192,75 @@ def test_remove_individuals_2():
     env._remove_individuals(decision, location)
 
     assert expected_result == env.exog_med_transitions_ship.shape[0]
+
+def test_update_medical_condition_1():
+    """Test the _update_medical_condition method when the location is the 
+    evacuation site.
+
+    _extended_summary_
+    """
+
+    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+
+    tau_hat_k = 16
+    location = 'evac'
+
+    # Remove the rows from the exog_med_transitions data frame and add
+    # specific rows for the test case
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    individual = {}
+    individual['arrival_time'] = 0
+    individual['category'] = 'white'
+    individual['white'] = 12
+    individual['green'] = 15
+    individual['yellow'] = 18
+    individual['red'] = 21
+    individual['black'] = np.nan
+
+    env.exog_med_transitions_evac = pd.concat([env.exog_med_transitions_evac, \
+                                              pd.DataFrame(individual, index = [0])],
+                                              ignore_index = True)
+    
+    expected_result = {'white' : 0, 'green' : 0, 'yellow' : 1, 'red' : 0, \
+                       'black' : 0}
+    
+    delta_hat_e_k = env._update_medical_condition(tau_hat_k, location)
+
+    assert expected_result == delta_hat_e_k
+
+def test_update_medical_condition_2():
+    """Test the _update_medical_condition method when the location is the 
+    ship.
+
+    _extended_summary_
+    """
+
+    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+
+    tau_hat_k = 48
+    location = 'ship'
+
+    # Remove the rows from the exog_med_transitions data frame and add
+    # specific rows for the test case
+    env.exog_med_transitions_ship.drop(env.exog_med_transitions_ship.index, inplace = True)
+
+    individual = {}
+    individual['arrival_time'] = 0
+    individual['category'] = 'red'
+    individual['white'] = np.nan
+    individual['green'] = 48
+    individual['yellow'] = 24
+    individual['red'] = 12
+    individual['black'] = np.nan
+
+    env.exog_med_transitions_ship = pd.concat([env.exog_med_transitions_ship, \
+                                              pd.DataFrame(individual, index = [0])],
+                                              ignore_index = True)
+    
+    expected_result = {'white' : 1, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                       'black' : 0}
+    
+    delta_hat_s_k = env._update_medical_condition(tau_hat_k, location)
+
+    assert expected_result == delta_hat_s_k

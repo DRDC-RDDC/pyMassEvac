@@ -405,7 +405,11 @@ class MassEvacuation(gym.Env):
 
                     # Sample the individual's transition times between medical
                     # categories if the person is being moved from the ship to
-                    # the evacuation location.
+                    # the evacuation location or arriving at the evacuation site
+                    # at the start of the scenario. The times are the sampled
+                    # times that an individual arrives in a given medical
+                    # condition.
+                    
                     last_category = ''
                     for l in valid_transitions_evac[k]:
 
