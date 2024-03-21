@@ -19,36 +19,7 @@ https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/
 
 class MassEvacuation(gym.Env):
 
-    """
-    Custom gymnasium environment to study the transport of individuals from an evacuation site to a forward operating location.
-    """
-    
-    def __init__(self, seed = None, default_rng = True):
-        """Initialization of a new MassEvacuation gymnasium environment.
-
-        Creates a new MassEvacuation gymnasium environment object. The 
-        object contains the initial state S_0, defines the state S_k, 
-        observation space, action space, and the queue that stores the 
-        event arrival and inter-arrival times. In addition, the initial 
-        transition times of individuals between medical triage states are 
-        computed. This information is deemed exogenous and is not knowable by 
-        the decision maker when deciding who to load on the helicopters, ships, 
-        or unload from ships.
-
-        Note: In Rempel (2024), seed was set to 20180529 and default_rng
-        was set to False.
-
-        Parameters
-        ----------
-        seed : int, optional
-            Random seed, by default None
-        default_rng : bool, optional
-            True if the numpy default_rng is to be used, False if RandomState is to be used, by default True
-        """
-        super(MassEvacuation, self).__init__()
-        
-        # Define the initial state S_0 - see Table 5 in Rempel (2024).
-        self.initial_state = {
+    rempel_2024_initial_state = {
             'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
             'm_s' : {'green' : 48, 'yellow' : 72, 'red' : 120},
             'c_h' : 10,
@@ -65,6 +36,45 @@ class MassEvacuation(gym.Env):
             'initial_helo_arrival' : [48],
             'initial_ship_arrival' : [0]
         }
+    
+    rempel_2024_seed = 20180529
+
+    """
+    Custom gymnasium environment to study the transport of individuals from an evacuation site to a forward operating location.
+    """
+    
+    def __init__(self, initial_state = rempel_2024_initial_state, \
+                 seed = None, default_rng = True):
+        """Initialization of a new MassEvacuation gymnasium environment.
+
+        Creates a new MassEvacuation gymnasium environment object. The 
+        object contains the initial state S_0, defines the state S_k, 
+        observation space, action space, and the queue that stores the 
+        event arrival and inter-arrival times. In addition, the initial 
+        transition times of individuals between medical triage states are 
+        computed. This information is deemed exogenous and is not knowable by 
+        the decision maker when deciding who to load on the helicopters, ships, 
+        or unload from ships.
+
+        Note: In Rempel (2024), seed was set to 20180529 and default_rng
+        was set to False.
+
+        Parameters
+        ----------
+        initial_state : dict, optional
+            Initial state S_0 of the environment. By default, it is set to
+            rempel_2024_initial_state that was used in Rempel (2024) with
+            a helicopter arriving at 48 hours and a ship arriving zero hours
+            after the individual arrive at the evacuation location.
+        seed : int, optional
+            Random seed, by default None
+        default_rng : bool, optional
+            True if the numpy default_rng is to be used, False if RandomState is to be used, by default True
+        """
+        super(MassEvacuation, self).__init__()
+        
+        # Define the initial state S_0 - see Table 5 in Rempel (2024).
+        self.initial_state = initial_state
         
         # Define the random number generator. 
         if default_rng == True:
@@ -92,8 +102,8 @@ class MassEvacuation(gym.Env):
         self.state = {
             'tau_k' : 0,
             'e_k' : 0,
-            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
-            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0}
+            'rho_e_k' : self.initial_state['rho_e_k'],
+            'rho_s_k' : self.initial_state['rho_s_k']
         }
 
         # Define the observation space - this is the state space of the 
@@ -103,8 +113,12 @@ class MassEvacuation(gym.Env):
             { 
                 'tau_k' : gym.spaces.Discrete(168),
                 'e_k' : gym.spaces.Discrete(3),
-                'rho_e_k' : gym.spaces.Box(0, 500, shape = (1,4), dtype = np.intc),
-                'rho_s_k' : gym.spaces.Box(0, 500, shape = (1,4), dtype = np.intc)
+                'rho_e_k' : gym.spaces.Box(0, \
+                    sum(self.initial_state['rho_e_k'].values()), \
+                    shape = (1,4), dtype = np.intc),
+                'rho_s_k' : gym.spaces.Box(0, \
+                    sum(self.initial_state['rho_e_k'].values()), \
+                    shape = (1,4), dtype = np.intc)
             }
         )
 
@@ -116,9 +130,18 @@ class MassEvacuation(gym.Env):
         # unloading the ship.
         self.action_space = gym.spaces.Dict(
             {
-                'x_hl_k' : gym.spaces.Box(0, 10, shape = (1,4), dtype = np.intc),
-                'x_hs_k' : gym.spaces.Box(0, 50, shape = (1,4), dtype = np.intc),
-                'x_su_k' : gym.spaces.Box(0, 50, shape = (1,4), dtype = np.intc)
+                'x_hl_k' : gym.spaces.Box(0, \
+                    self.initial_state['c_h'], \
+                    shape = (1,4), \
+                    dtype = np.intc),
+                'x_hs_k' : gym.spaces.Box(0, \
+                    self.initial_state['c_s'], \
+                    shape = (1,4), \
+                    dtype = np.intc),
+                'x_su_k' : gym.spaces.Box(0, \
+                    self.initial_state['c_s'], \
+                    shape = (1,4), 
+                    dtype = np.intc)
             }
         )
 
@@ -147,12 +170,14 @@ class MassEvacuation(gym.Env):
         # Add the initial individuals to the self.exog_med_transitions_evac
         # data frame and randomly select their transition times between 
         # medical triage categories. 
-        self._add_individuals(self.state['rho_e_k'], 'evac')
+        self._add_individuals(initial_state['rho_e_k'], 'evac')
         
         # Make a copy of each exogenous data frame. These are used in the 
         # reset method to set the environment to its initial state.
-        self.initial_med_transitions_evac = copy.deepcopy(self.exog_med_transitions_evac)
-        self.initial_med_transitions_ship = copy.deepcopy(self.exog_med_transitions_ship)
+        self.initial_med_transitions_evac = copy.deepcopy( \
+            self.exog_med_transitions_evac)
+        self.initial_med_transitions_ship = copy.deepcopy( \
+            self.exog_med_transitions_ship)
 
         return
 
@@ -350,13 +375,7 @@ class MassEvacuation(gym.Env):
             print('Render modes are not supported.')
 
         return
-
-    def _update_queue(self, tau_k, e_k):
-
-        self.queue.put(tau_k, e_k, setRelative = True)
-
-        return
-
+    
     # Function to add individuals to a location, either the evacuation site 'evac' or the 'ship'.
     def _add_individuals(self, decision, location):
         """Add individuals to a location's exogenous information data frame.
@@ -407,9 +426,9 @@ class MassEvacuation(gym.Env):
                     # categories if the person is being moved from the ship to
                     # the evacuation location or arriving at the evacuation site
                     # at the start of the scenario. The times are the sampled
-                    # times that an individual arrives in a given medical
+                    # times that an individual departs from a given medical
                     # condition.
-                    
+
                     last_category = ''
                     for l in valid_transitions_evac[k]:
 
@@ -810,9 +829,6 @@ class MassEvacuation(gym.Env):
         tau_k = self.state['tau_k'] + exog_info['tau_hat_k']
 
         e_k = exog_info['e_hat_k']
-
-        rho_e_k = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
-        rho_s_k = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
 
         rho_e_k = exog_info['delta_hat_e_k']
         rho_s_k = exog_info['delta_hat_s_k']

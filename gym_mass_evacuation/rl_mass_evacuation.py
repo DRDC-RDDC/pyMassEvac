@@ -12,7 +12,32 @@ from MassEvacuation import MassEvacuation
 from MassEvacuationPolicy import MassEvacuationPolicy
 
 
-env = MassEvacuation(seed = 20180529)
+# Set the seed that was used in Rempel (2024)
+rempel_2024_seed = 20180529
+
+# Set the initial state
+rempel_2024_initial_state = {
+            'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
+            'm_s' : {'green' : 48, 'yellow' : 72, 'red' : 120},
+            'c_h' : 10,
+            'c_s' : 50,
+            'delta_h' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
+            'delta_s' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
+            'eta_h' : 3,
+            'eta_sl' : 24,
+            'eta_su' : 1,
+            'tau_k' : 0,
+            'e_k' : 0,
+            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
+            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0},
+            'initial_helo_arrival' : [48],
+            'initial_ship_arrival' : [0]
+        }
+
+env = MassEvacuation(initial_state = rempel_2024_initial_state, \
+                     seed = rempel_2024_seed,
+                     default_rng = False)
+
 bm = MassEvacuationPolicy()
 
 # define the default action
