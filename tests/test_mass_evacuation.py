@@ -35,6 +35,13 @@ def test_init(initial_state, seed):
     """Test the init method.
 
     Test the init method.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.    
     """
 
     # Create the mass evacuation environment
@@ -66,6 +73,7 @@ def test_init(initial_state, seed):
     assert env.queue.queue.equals(expected_queue)
     assert env.exog_med_transitions_evac.shape == expected_exog_evac_shape
     assert env.exog_med_transitions_ship.shape == expected_exog_ship_shape
+
 
 def test_render(initial_state, seed):
     """Test the render method.

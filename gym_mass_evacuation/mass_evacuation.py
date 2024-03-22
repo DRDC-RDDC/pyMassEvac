@@ -41,7 +41,7 @@ class MassEvacuation(gym.Env):
 
         Parameters
         ----------
-        initial_state : dict, optional
+        initial_state : dict
             Initial state S_0 of the environment. By default, it is set to
             rempel_2024_initial_state that was used in Rempel (2024) with
             a helicopter arriving at 48 hours and a ship arriving zero hours
@@ -50,116 +50,137 @@ class MassEvacuation(gym.Env):
             Random seed, by default None
         default_rng : bool, optional
             True if the numpy default_rng is to be used, False if RandomState is to be used, by default True
+
+        Returns
+        -------
+        MassEvacuation
+            An object that contains the mass evacuation environment. If the
+            initial_state does not contain the correct set of keys, None
+            is returned. 
         """
+
         super(MassEvacuation, self).__init__()
         
-        # Define the initial state S_0 - see Table 5 in Rempel (2024).
-        self.initial_state = initial_state
+        # Check if the initial state contains the required keys in the
+        # dictionary.
+        required_keys = ('m_e', 'm_s', 'c_h', 'c_s', 'delta_h', 'delta_s', \
+                         'eta_h', 'eta_sl', 'eta_su', 'tau_k', 'e_k', \
+                            'rho_e_k', 'rho_s_k', 'initial_helo_arrival', \
+                                'initial_ship_arrival')
         
-        # Define the random number generator. 
-        if default_rng == True:
-            self.rng = np.random.default_rng(seed)
-        else: 
-            self.rng = np.random.RandomState(seed)
+        if set(required_keys).issubset(initial_state):
 
-        # Initialize the priority queue. Note that the state variable does not
-        # have access to this queue.
-        self.queue = MutablePriorityQueue()        
+            # Define the initial state S_0 - see Table 5 in Rempel (2024).
+            self.initial_state = initial_state
+            
+            # Define the random number generator. 
+            if default_rng == True:
+                self.rng = np.random.default_rng(seed)
+            else: 
+                self.rng = np.random.RandomState(seed)
 
-        # Add the arrival of the helicopters and ships to the event queue. The # arrival times defined in the initial state S_0 are relative to the
-        # arrival of the individuals at the evacuation site.
-        for i in range(len(self.initial_state['initial_helo_arrival'])):
-            self.queue.put(self.initial_state['initial_helo_arrival'][i], 1)
+            # Initialize the priority queue. Note that the state variable does not
+            # have access to this queue.
+            self.queue = MutablePriorityQueue()        
 
-        for i in range(len(self.initial_state['initial_ship_arrival'])):
-            self.queue.put(self.initial_state['initial_ship_arrival'][i], 2)
+            # Add the arrival of the helicopters and ships to the event queue. The # arrival times defined in the initial state S_0 are relative to the
+            # arrival of the individuals at the evacuation site.
+            for i in range(len(self.initial_state['initial_helo_arrival'])):
+                self.queue.put(self.initial_state['initial_helo_arrival'][i], 1)
 
-        # Update the queue such that the arrival times of the events are 
-        # relative to each previous event.
-        self.queue.setRelative()
-        
-        # Define the initial values of the state variable S_k.
-        self.state = {
-            'tau_k' : 0,
-            'e_k' : 0,
-            'rho_e_k' : self.initial_state['rho_e_k'],
-            'rho_s_k' : self.initial_state['rho_s_k']
-        }
+            for i in range(len(self.initial_state['initial_ship_arrival'])):
+                self.queue.put(self.initial_state['initial_ship_arrival'][i], 2)
 
-        # Define the observation space - this is the state space of the 
-        # environment. See the definition of the state variable
-        # in equation (1).
-        self.observation_space = gym.spaces.Dict(
-            { 
-                'tau_k' : gym.spaces.Discrete(168),
-                'e_k' : gym.spaces.Discrete(3),
-                'rho_e_k' : gym.spaces.Box(0, \
-                    sum(self.initial_state['rho_e_k'].values()), \
-                    shape = (1,4), dtype = np.intc),
-                'rho_s_k' : gym.spaces.Box(0, \
-                    sum(self.initial_state['rho_e_k'].values()), \
-                    shape = (1,4), dtype = np.intc)
+            # Update the queue such that the arrival times of the events are 
+            # relative to each previous event.
+            self.queue.setRelative()
+            
+            # Define the initial values of the state variable S_k.
+            self.state = {
+                'tau_k' : 0,
+                'e_k' : 0,
+                'rho_e_k' : self.initial_state['rho_e_k'],
+                'rho_s_k' : self.initial_state['rho_s_k']
             }
-        )
 
-        # Define the action space - this is the set of decisions that can be 
-        # taken. See the definition in section 4.1.2. Note that is definition 
-        # does not include the constraints on the decisions; those constraints 
-        # (equations (2), (3), (5), and (6) would need to be handled in the 
-        # decision policies for loading a helicopter, loading the ship, and 
-        # unloading the ship.
-        self.action_space = gym.spaces.Dict(
-            {
-                'x_hl_k' : gym.spaces.Box(0, \
-                    self.initial_state['c_h'], \
-                    shape = (1,4), \
-                    dtype = np.intc),
-                'x_hs_k' : gym.spaces.Box(0, \
-                    self.initial_state['c_s'], \
-                    shape = (1,4), \
-                    dtype = np.intc),
-                'x_su_k' : gym.spaces.Box(0, \
-                    self.initial_state['c_s'], \
-                    shape = (1,4), 
-                    dtype = np.intc)
-            }
-        )
+            # Define the observation space - this is the state space of the 
+            # environment. See the definition of the state variable
+            # in equation (1).
+            self.observation_space = gym.spaces.Dict(
+                { 
+                    'tau_k' : gym.spaces.Discrete(168),
+                    'e_k' : gym.spaces.Discrete(3),
+                    'rho_e_k' : gym.spaces.Box(0, \
+                        sum(self.initial_state['rho_e_k'].values()), \
+                        shape = (1,4), dtype = np.intc),
+                    'rho_s_k' : gym.spaces.Box(0, \
+                        sum(self.initial_state['rho_e_k'].values()), \
+                        shape = (1,4), dtype = np.intc)
+                }
+            )
 
-        # Create a data frame that stores the exogenous medical transition 
-        # times for all individuals that are at the evacuation site or onboard 
-        # the ship. Note that this information is not part of the observation, 
-        # but is part of the enivronment.
-        self.exog_med_transitions_evac = pd.DataFrame(columns = 
-                                                      ['arrival_time',
-                                                       'category',
-                                                       'white',
-                                                       'green',
-                                                       'yellow',
-                                                       'red',
-                                                       'black'])
-        
-        self.exog_med_transitions_ship = pd.DataFrame(columns = 
-                                                      ['arrival_time',
-                                                       'category',
-                                                       'white',
-                                                       'green',
-                                                       'yellow',
-                                                       'red',
-                                                       'black'])
+            # Define the action space - this is the set of decisions that can be 
+            # taken. See the definition in section 4.1.2. Note that is definition 
+            # does not include the constraints on the decisions; those constraints 
+            # (equations (2), (3), (5), and (6) would need to be handled in the 
+            # decision policies for loading a helicopter, loading the ship, and 
+            # unloading the ship.
+            self.action_space = gym.spaces.Dict(
+                {
+                    'x_hl_k' : gym.spaces.Box(0, \
+                        self.initial_state['c_h'], \
+                        shape = (1,4), \
+                        dtype = np.intc),
+                    'x_hs_k' : gym.spaces.Box(0, \
+                        self.initial_state['c_s'], \
+                        shape = (1,4), \
+                        dtype = np.intc),
+                    'x_su_k' : gym.spaces.Box(0, \
+                        self.initial_state['c_s'], \
+                        shape = (1,4), 
+                        dtype = np.intc)
+                }
+            )
 
-        # Add the initial individuals to the self.exog_med_transitions_evac
-        # data frame and randomly select their transition times between 
-        # medical triage categories. 
-        self._add_individuals(initial_state['rho_e_k'], 'evac')
-        
-        # Make a copy of each exogenous data frame. These are used in the 
-        # reset method to set the environment to its initial state.
-        self.initial_med_transitions_evac = copy.deepcopy( \
-            self.exog_med_transitions_evac)
-        self.initial_med_transitions_ship = copy.deepcopy( \
-            self.exog_med_transitions_ship)
+            # Create a data frame that stores the exogenous medical transition 
+            # times for all individuals that are at the evacuation site or onboard 
+            # the ship. Note that this information is not part of the observation, 
+            # but is part of the enivronment.
+            self.exog_med_transitions_evac = pd.DataFrame(columns = 
+                                                        ['arrival_time',
+                                                        'category',
+                                                        'white',
+                                                        'green',
+                                                        'yellow',
+                                                        'red',
+                                                        'black'])
+            
+            self.exog_med_transitions_ship = pd.DataFrame(columns = 
+                                                        ['arrival_time',
+                                                        'category',
+                                                        'white',
+                                                        'green',
+                                                        'yellow',
+                                                        'red',
+                                                        'black'])
 
-        return
+            # Add the initial individuals to the self.exog_med_transitions_evac
+            # data frame and randomly select their transition times between 
+            # medical triage categories. 
+            self._add_individuals(initial_state['rho_e_k'], 'evac')
+            
+            # Make a copy of each exogenous data frame. These are used in the 
+            # reset method to set the environment to its initial state.
+            self.initial_med_transitions_evac = copy.deepcopy( \
+                self.exog_med_transitions_evac)
+            self.initial_med_transitions_ship = copy.deepcopy( \
+                self.exog_med_transitions_ship)
+
+            return
+    
+        else:
+            raise KeyError(f'Keys "{required_keys}" does not exist')
+
 
     def _compute_reward(self, action):
         """Compute the contribution for taking an action.
