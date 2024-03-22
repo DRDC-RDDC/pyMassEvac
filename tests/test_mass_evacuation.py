@@ -5,15 +5,10 @@ import copy
 
 from gym_mass_evacuation import mass_evacuation
 
+@pytest.fixture
+def initial_state():
 
-def test_init():
-    """Test the init method.
-
-    Test the init method.
-    """
-
-    # Set the initial state
-    initial_state = {
+    return {
             'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
             'm_s' : {'green' : 48, 'yellow' : 72, 'red' : 120},
             'c_h' : 40,
@@ -31,8 +26,20 @@ def test_init():
             'initial_ship_arrival' : [16]
         }
 
+@pytest.fixture
+def seed():
+
+    return 20180529
+
+def test_init(initial_state, seed):
+    """Test the init method.
+
+    Test the init method.
+    """
+
     # Create the mass evacuation environment
-    env = mass_evacuation.MassEvacuation(initial_state = initial_state)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set the expected state
     expected_state = {'tau_k' : 0,
@@ -60,37 +67,40 @@ def test_init():
     assert env.exog_med_transitions_evac.shape == expected_exog_evac_shape
     assert env.exog_med_transitions_ship.shape == expected_exog_ship_shape
 
-def test_render():
+def test_render(initial_state, seed):
     """Test the render method.
 
     Test the render method. Currently the method performs no actions.
     """
 
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     expected_result = None
 
     assert expected_result == env.render()
 
-def test_close():
+def test_close(initial_state, seed):
     """Test the close method.
 
     Test the close method. Currently the method performs no actions.
     """
 
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     expected_result = None
 
     assert expected_result == env.close()
 
-def test_observation():
+def test_observation(initial_state, seed):
     """Test the observation method.
 
     Test the observation method. This method returns the current state S_k.
     """
 
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     env.state = {
             'tau_k' : 0,
@@ -103,7 +113,7 @@ def test_observation():
 
     assert expected_result == env.observation()
 
-def test_reset_1():
+def test_reset_1(initial_state, seed):
     """Test the reset method when single_scenario = True.
 
     Test the reset method when single_scenario = True. In this situation, the
@@ -111,7 +121,8 @@ def test_reset_1():
     environment was initially created.
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     expected_initial_state = copy.deepcopy(env.initial_state)
     expected_state = copy.deepcopy(env.state)
@@ -131,7 +142,7 @@ def test_reset_1():
     assert expected_exog_med_transitions_ship.equals( \
         env.exog_med_transitions_ship)
     
-def test_reset_2():
+def test_reset_2(initial_state, seed):
     """Test the reset method when single_scenario = False.
 
     Test the reset method when single_scenario = False. In this situation, the
@@ -139,7 +150,8 @@ def test_reset_2():
     environment was initially created.
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     expected_initial_state = copy.deepcopy(env.initial_state)
     expected_state = copy.deepcopy(env.state)
@@ -159,7 +171,7 @@ def test_reset_2():
     assert expected_exog_med_transitions_ship.equals( \
         env.exog_med_transitions_ship)
 
-def test_compute_reward_1():
+def test_compute_reward_1(initial_state, seed):
     """Test the _compute_reward function when e_k = 1.
 
     Test the _compute_reward function when the state variable e_k is 1. This
@@ -167,7 +179,8 @@ def test_compute_reward_1():
     an immediate contribution being received. 
     """
 
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # set the state variable e_k to helicopter loading
     env.state['e_k'] = 1
@@ -183,7 +196,7 @@ def test_compute_reward_1():
 
     assert expected_reward == env._compute_reward(decision)
 
-def test_compute_reward_2():
+def test_compute_reward_2(initial_state, seed):
     """Test the _compute_reward function when e_k = 2.
 
     Test the _compute_reward function when the state variable e_k is 2. This
@@ -191,7 +204,8 @@ def test_compute_reward_2():
     an immediate contribution being received. 
     """
 
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # set the state variable e_k to helicopter loading
     env.state['e_k'] = 2
@@ -208,7 +222,7 @@ def test_compute_reward_2():
 
     assert expected_reward == env._compute_reward(decision)
 
-def test_add_individuals_1():
+def test_add_individuals_1(initial_state, seed):
     """Test the _add_individuals() method when individuals are to be added
     to the ship.
 
@@ -218,7 +232,8 @@ def test_add_individuals_1():
     not check if space is available onboard the ship---it assumes that this 
     check has already been performed before this method is called.
     """
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set the state variable S_k for the test
     S_k = {'tau_k' : 3, 'e_k' : 2, \
@@ -248,7 +263,7 @@ def test_add_individuals_1():
 
     assert expected_result == env.exog_med_transitions_ship.shape[0]
     
-def test_add_individuals_2():
+def test_add_individuals_2(initial_state, seed):
     """Test the _add_individuals() method when individuals are to be added
     to the evacuation site.
 
@@ -256,7 +271,8 @@ def test_add_individuals_2():
     the evacuation site. Note that _add_individuals() adds rows to the 
     exog_med_transition_evac data frame, and does not change the state variable. 
     """
-    env = mass_evacuation.MassEvacuation()
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set the state variable S_k for the test
     S_k = {'tau_k' : 24, 'e_k' : 3, \
@@ -286,7 +302,7 @@ def test_add_individuals_2():
 
     assert expected_result == env.exog_med_transitions_evac.shape[0]
 
-def test_remove_individuals_1():
+def test_remove_individuals_1(initial_state, seed):
     """Test the _remove_individuals() method when individuals are to be removed
     from the evacuation site.
 
@@ -295,7 +311,8 @@ def test_remove_individuals_1():
     exog_med_transition_evac data frame, and does not change the state variable. 
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set the location for the individuals to be loaded
     location = 'evac'
@@ -314,7 +331,7 @@ def test_remove_individuals_1():
 
     assert expected_result == env.exog_med_transitions_evac.shape[0]
 
-def test_remove_individuals_2():
+def test_remove_individuals_2(initial_state, seed):
     """Test the _remove_individuals() method when individuals are to be removed
     from the ship.
 
@@ -323,7 +340,8 @@ def test_remove_individuals_2():
     exog_med_transition_ship data frame, and does not change the state variable. 
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set the location for the individuals to be loaded
     location = 'ship'
@@ -348,7 +366,7 @@ def test_remove_individuals_2():
 
     assert expected_result == env.exog_med_transitions_ship.shape[0]
 
-def test_update_medical_condition_1():
+def test_update_medical_condition_1(initial_state, seed):
     """Test the _update_medical_condition method when the location is the 
     evacuation site.
 
@@ -358,7 +376,8 @@ def test_update_medical_condition_1():
     passed to the method.
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     tau_hat_k = 16
     location = 'evac'
@@ -387,7 +406,7 @@ def test_update_medical_condition_1():
 
     assert expected_result == delta_hat_e_k
 
-def test_update_medical_condition_2():
+def test_update_medical_condition_2(initial_state, seed):
     """Test the _update_medical_condition method when the location is the 
     ship.
 
@@ -397,7 +416,8 @@ def test_update_medical_condition_2():
     passed to the method.    
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     tau_hat_k = 48
     location = 'ship'
@@ -426,7 +446,7 @@ def test_update_medical_condition_2():
 
     assert expected_result == delta_hat_s_k
 
-def test_compute_delta_hat_k_1():
+def test_compute_delta_hat_k_1(initial_state, seed):
     """Test the _compute_delta_hat_k method when the event is that all
     individuals have arrived at the evacuation site.
 
@@ -436,7 +456,8 @@ def test_compute_delta_hat_k_1():
     of the environment's other methods based on the state variable e_k.
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set tau_hat_k to 12 hours and the decision to null, i.e., no individual 
     # moves.
@@ -477,7 +498,7 @@ def test_compute_delta_hat_k_1():
 
     assert expected_result == result
 
-def test_compute_delta_hat_k_2():
+def test_compute_delta_hat_k_2(initial_state, seed):
     """Test the _compute_delta_hat_k method when the event is that individuals
     are to be loaded onto the helicopter.
 
@@ -487,7 +508,8 @@ def test_compute_delta_hat_k_2():
     of the environment's other methods based on the state variable e_k.
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set tau_hat_k to 12 hours and the decision to null, i.e., no individual 
     # moves.
@@ -530,7 +552,7 @@ def test_compute_delta_hat_k_2():
 
     assert expected_result == result
                             
-def test_compute_delta_hat_k_3():
+def test_compute_delta_hat_k_3(initial_state, seed):
     """Test the _compute_delta_hat_k method when the event is that individuals
     are to be loaded onto the ship.
 
@@ -540,7 +562,8 @@ def test_compute_delta_hat_k_3():
     of the environment's other methods based on the state variable e_k.
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set tau_hat_k to 12 hours and the decision to null, i.e., no individual 
     # moves.
@@ -589,14 +612,15 @@ def test_compute_delta_hat_k_3():
     assert expected_result == result['delta_hat_e_k']
     assert result['delta_hat_s_k']
 
-def test_transition_fn():
+def test_transition_fn(initial_state, seed):
     """Test the transition function that computes S_{k + 1}.
 
     Test the transition function that computes S_{k + 1} = S^M(S_k, x_k, 
     W_{k + 1}).
     """
 
-    env = mass_evacuation.MassEvacuation(seed = 20180529, default_rng = False)
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
 
     # Set the decision
     decision = {}
