@@ -740,7 +740,7 @@ class MassEvacuation(gym.Env):
 
         - updated number of individuals in each triage category at the evacuation site (delta_hat_e_{k + 1});
         - updated number of individuals in each triage category on the ship (delta_hat_s_{k + 1});
-        - event which triggers the next state (e_hat_{k + 1}). these may be:
+        - event which triggers the next state (e_hat_{k + 1}):
             - 0: all individuals have arrived at the evac site
             - 1: helo arrives at the evac site and is ready to load individuals
             - 2: ship is ready to load individuals
@@ -777,9 +777,7 @@ class MassEvacuation(gym.Env):
         # for evacuation site
         if e_hat_k == 1:
             
-            # Add the event to the queue when the helicopter will return. note # the 3 below is for a revisit time in three hours; this is 
-            # hardcoded for now, but will be computed in the future based on the
-            # distance from the forward operating loaction to the evacuate site
+            # Add the event to the queue when the helicopter will return. 
             self.queue.put(self.initial_state['eta_h'], 1, setRelative = True)
 
         # e_hat _k == 2: a ship will be arriving next to load individuals
@@ -788,14 +786,13 @@ class MassEvacuation(gym.Env):
             # Add the event to the queue when the individuals from the ship will
             # be checked to determine if they are to be removed from the ship
             # and returned to the evacuation site (making room for others to
-            # board the ship and receive medical attention). note that the 
-            # number 24 below is an assumption and consistutes a policy decision
-            self.queue.put(self.initial_state['eta_sl'], 3, setRelative = True)  
+            # board the ship and receive medical attention). 
+            self.queue.put(self.initial_state['eta_su'], 3, setRelative = True)  
 
         # e_hat_k == 3: a ship will be unloading individuals next; schedule 
         # when the next set will be loading
         if e_hat_k == 3:
-            self.queue.put(self.initial_state['eta_su'], 2, setRelative = True)
+            self.queue.put(self.initial_state['eta_sl'], 2, setRelative = True)
 
         # return the exogenous information
         assert delta_hat_s_k['yellow'] >= 0

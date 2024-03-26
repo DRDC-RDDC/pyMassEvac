@@ -9,6 +9,5 @@ dependencies:
   - numpy
   - matplotlib
   - gymnasium
-  - pip:
-    - pdfcropmargins
-    - gymnasium
+  - pytest
+  - pytest-cov

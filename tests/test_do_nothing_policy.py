@@ -1,14 +1,19 @@
 import pytest
 from gym_mass_evacuation import mass_evacuation_policy 
 
-def test_do_nothing():
+@pytest.fixture
+def seed():
+    
+    return 49871037
+
+def test_do_nothing(seed):
     """Test the do_nothing policy.
 
     Test whether the do_nothing policy returns a dict that
     performs no actions.
     """
 
-    p = mass_evacuation_policy.MassEvacuationPolicy()
+    p = mass_evacuation_policy.MassEvacuationPolicy(seed)
     decision = p.do_nothing()
 
     # assert

@@ -9,7 +9,7 @@ import math
 
 class MassEvacuationPolicy():
 
-    def __init__(self):
+    def __init__(self, seed):
         """Initialize a policy object.
 
         The policy class contains the set of policy function
@@ -24,6 +24,8 @@ class MassEvacuationPolicy():
         Since there is nothing to initialize for this class, the
         __init__ function does not perform any actions.
         """
+
+        self.rng = np.random.default_rng(seed)
 
         return
 
@@ -390,11 +392,12 @@ class MassEvacuationPolicy():
         minIndividualCapacityNeeded = min(individualCapacity.values())
 
         # get the capacity of the helicopter / ship
-        if state['e_k'] == 1:
+        if state['e_k'] == 2:
 
             # loading a ship
-            for k in state.rho_s_k.keys():
-                totalCapacity -= state.rho_s_k[k] * individualCapacity[k]
+            for k in state['rho_s_k'].keys():
+                if k != 'black':
+                    totalCapacity -= state['rho_s_k'][k] * individualCapacity[k]
 
         capacityConsumed = 0
         while (capacityConsumed < totalCapacity) and (numLoaded < numAvailable) and (minIndividualCapacityNeeded <= totalCapacity - capacityConsumed):
@@ -412,7 +415,7 @@ class MassEvacuationPolicy():
                 # update the maxIndividualCapacity
                 minIndividualCapacityNeeded = min({k: individualCapacity[k] for k in set(l) & set(individualCapacity.keys())}.values())
 
-                r = self.model.rng.choice(l)
+                r = self.rng.choice(l)
 
                 if (capacityConsumed + individualCapacity[r]) <= totalCapacity:
                     decision[r] += 1
@@ -454,9 +457,7 @@ class MassEvacuationPolicy():
         decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
 
         # Determine how many individuals are currently onboard the ship
-        numOnShip = 0
-        for k in state['rho_s_k'].keys():
-            numOnShip += state.rho_s_k[k]
+        numOnShip = sum(state['rho_s_k'].values())
 
         # The number of individuals to unload from the ship is the minimum of
         # the parameter passed to this policy and the actual number of 
@@ -468,13 +469,17 @@ class MassEvacuationPolicy():
             # randomly select one of the four categories from which to unload an
             # individual, but only from those categories from which there are 
             # people remaining to select
+
+            # First, find the set of keys for which there are individuals on the
+            # ship
             l = list()
             for k in decision.keys():
                 if (k != 'black') and (state['rho_s_k'][k] - decision[k]) > 0:
                     l.append(k)
 
+            # Second, randomly select one of those individuals
             if len(l) > 0:
-                r = self.model.rng.choice(l)
+                r = self.rng.choice(l)
                 decision[r] += 1
 
         return decision

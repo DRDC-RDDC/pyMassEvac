@@ -16,7 +16,7 @@ def initial_state():
             'delta_h' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
             'delta_s' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
             'eta_h' : 3,
-            'eta_sl' : 48,
+            'eta_sl' : 24,
             'eta_su' : 1,
             'tau_k' : 0,
             'e_k' : 0,
@@ -79,6 +79,13 @@ def test_render(initial_state, seed):
     """Test the render method.
 
     Test the render method. Currently the method performs no actions.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -92,6 +99,13 @@ def test_close(initial_state, seed):
     """Test the close method.
 
     Test the close method. Currently the method performs no actions.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.       
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -105,6 +119,13 @@ def test_observation(initial_state, seed):
     """Test the observation method.
 
     Test the observation method. This method returns the current state S_k.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -127,6 +148,13 @@ def test_reset_1(initial_state, seed):
     Test the reset method when single_scenario = True. In this situation, the
     initial start state of the environment is that which was set when the
     environment was initially created.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -156,6 +184,13 @@ def test_reset_2(initial_state, seed):
     Test the reset method when single_scenario = False. In this situation, the
     initial start state of the environment is that which was set when the
     environment was initially created.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -185,6 +220,13 @@ def test_compute_reward_1(initial_state, seed):
     Test the _compute_reward function when the state variable e_k is 1. This
     event is a helicopter loading event, and thus a decision should result in
     an immediate contribution being received. 
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -210,6 +252,13 @@ def test_compute_reward_2(initial_state, seed):
     Test the _compute_reward function when the state variable e_k is 2. This
     event is a ship loading event, and thus a decision should result in
     an immediate contribution being received. 
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -239,6 +288,13 @@ def test_add_individuals_1(initial_state, seed):
     ship data frame, and does not change the state variable. The method does
     not check if space is available onboard the ship---it assumes that this 
     check has already been performed before this method is called.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
                                          seed = seed, default_rng = False)
@@ -278,6 +334,13 @@ def test_add_individuals_2(initial_state, seed):
     Test the _add_individuals() method when individuals are to be added to 
     the evacuation site. Note that _add_individuals() adds rows to the 
     exog_med_transition_evac data frame, and does not change the state variable. 
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
                                          seed = seed, default_rng = False)
@@ -317,6 +380,13 @@ def test_remove_individuals_1(initial_state, seed):
     Test the _add_individuals() method when individuals are to be removed from 
     the evacuation site. Note that _remove_individuals() removes rows from the 
     exog_med_transition_evac data frame, and does not change the state variable. 
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -346,6 +416,13 @@ def test_remove_individuals_2(initial_state, seed):
     Test the _add_individuals() method when individuals are to be removed from 
     the ship. Note that _remove_individuals() removes rows from the 
     exog_med_transition_ship data frame, and does not change the state variable. 
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -382,6 +459,13 @@ def test_update_medical_condition_1(initial_state, seed):
     evacuation site. Note that method only computes delta_hat_e_k or 
     delta_hat_s_k, based on the value of the location parameter that is
     passed to the method.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -421,7 +505,14 @@ def test_update_medical_condition_2(initial_state, seed):
     Test the _update_medical_condition() method for individuals onboard 
     the ship. Note that method only computes delta_hat_e_k or 
     delta_hat_s_k, based on the value of the location parameter that is
-    passed to the method.    
+    passed to the method.  
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.     
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -462,6 +553,13 @@ def test_compute_delta_hat_k_1(initial_state, seed):
     individuals have arrived at the evacuation site (e_k == 0). Note that 
     method returns both delta_hat_e_k and delta_hat_s_k, and calls several
     of the environment's other methods based on the state variable e_k.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -514,6 +612,13 @@ def test_compute_delta_hat_k_2(initial_state, seed):
     individuals are to be loaded onto the helicopter (e_k == 1). Note that 
     method returns both delta_hat_e_k and delta_hat_s_k, and calls several
     of the environment's other methods based on the state variable e_k.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -568,6 +673,13 @@ def test_compute_delta_hat_k_3(initial_state, seed):
     individuals are to be loaded onto the ship (e_k == 2). Note that 
     method returns both delta_hat_e_k and delta_hat_s_k, and calls several
     of the environment's other methods based on the state variable e_k.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -620,11 +732,87 @@ def test_compute_delta_hat_k_3(initial_state, seed):
     assert expected_result == result['delta_hat_e_k']
     assert result['delta_hat_s_k']
 
+def test_compute_delta_hat_k_4(initial_state, seed):
+    """Test the _compute_delta_hat_k method when the event is that individuals
+    are to be unloaded onto the ship.
+
+    Test the _compute_delta_hat() method when the event is that 
+    individuals are to be unloaded onto the ship (e_k == 3). Note that 
+    method returns both delta_hat_e_k and delta_hat_s_k, and calls several
+    of the environment's other methods based on the state variable e_k.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
+
+    # Set tau_hat_k to 1 hours and the decision to null, i.e., no individual 
+    # moves.
+    tau_hat_k = 1
+    decision = {'x_hl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    env.state['e_k'] = 3
+
+    # Remove the rows from the exog_med_transitions data frame and add
+    # specific rows for the test case
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    for _ in range(12):
+        individual = {}
+        individual['arrival_time'] = 0
+        individual['category'] = 'white'
+        individual['white'] = 60
+        individual['green'] = 72
+        individual['yellow'] = 80
+        individual['red'] = 82
+        individual['black'] = np.nan
+
+        env.exog_med_transitions_evac = \
+            pd.concat([env.exog_med_transitions_evac, \
+                                                pd.DataFrame(individual, index = [0])],
+                                                ignore_index = True)
+
+    # Note : when individuals are unloaded onto the ship there is an element of 
+    # randomness introduced as the transition times between medical triage
+    # categories are sampled (within the _add_individuals method), and thus
+    # we are uncertain as to the distribution of individuals by triage category
+    # on the ship. However, we can state that for this test the number in the 
+    # white category must equal the number that is unloaded from the
+    # ship (which is 10) that are white plus the number of individuals that
+    # already were at the evacuation site (which was 12), for a total of 22. 
+
+
+    expected_result = {'white' : 22, 'green' : 0, \
+                        'yellow' : 0, 'red' : 0, \
+                        'black' : 0}
+    
+    result = env._compute_delta_hat_k(tau_hat_k, decision)
+
+    assert expected_result == result['delta_hat_e_k']
+    assert result['delta_hat_s_k']
+
+
 def test_transition_fn(initial_state, seed):
     """Test the transition function that computes S_{k + 1}.
 
     Test the transition function that computes S_{k + 1} = S^M(S_k, x_k, 
     W_{k + 1}).
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
@@ -659,4 +847,288 @@ def test_transition_fn(initial_state, seed):
 
     assert expected_result == env._transition_fn(decision, exog_info)
 
-                
+def test_exog_info_fn_1(initial_state, seed):
+    """Test the _exog_info_fn method when the next event is to load a
+    helicopter.
+
+    Test the _exog_info_fn method when the next event is to load a 
+    helicopter. This event occurs when e_hat_{k + 1} is one.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)    
+    
+    # Set the current event to a helicopter loading event (e_k = 1)
+    env.state['e_k'] = 1
+
+    # Set the helicopter loading decision
+    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    # Reset the state of the env such that there are 12 individuals at the 
+    # evacuation site.
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    for _ in range(12):
+        individual = {}
+        individual['arrival_time'] = 0
+        individual['category'] = 'white'
+        individual['white'] = 12
+        individual['green'] = 15
+        individual['yellow'] = 18
+        individual['red'] = 21
+        individual['black'] = np.nan
+
+        env.exog_med_transitions_evac = pd.concat([
+            env.exog_med_transitions_evac, \
+            pd.DataFrame(individual, index = [0])],
+            ignore_index = True
+        )
+    
+    # Drop the rows in the env's event queue and add a specific row to load the
+    # helicopter at a given time (e_k = 1, tau_k = 12).
+    env.queue.queue.drop(env.queue.queue.index, inplace = True)
+    env.queue.put(tau_k = 12, e_k = 1, setRelative = True)
+
+    # Given the decision to load 10 individuals onto the helicopter and the time
+    # to the next event, the remaining two individuals at the evacuation site 
+    # should transition to the green triage category.
+
+    # Calling _compute_delta_hat_k with e_k = 1 will result in the delta_hat_e_k
+    # and delta_hat_s_k being computed. 
+
+    expected_delta_hat_e_k = {'white' : 0, 'green' : 2, 'yellow' : 0, \
+                              'red' : 0, 'black' : 0}
+    expected_delta_hat_s_k = {'white' : 0, 'green' : 0, 'yellow' : 0, \
+                              'red' : 0, 'black' : 0}
+    
+    result = env._exog_info_fn(decision)
+
+    assert expected_delta_hat_e_k == result['delta_hat_e_k']
+    assert expected_delta_hat_s_k == result['delta_hat_s_k']
+    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_h']
+    assert env.queue.queue['e_k'][0] == 1
+
+def test_exog_info_fn_2(initial_state, seed):
+    """Test the _exog_info_fn method when the next event is to load a
+    ship
+
+    Test the _exog_info_fn method when the next event is to load a 
+    ship. This event occurs when e_hat_{k + 1} is one.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)    
+    
+    # Set the current event to a helicopter loading event (e_k = 1)
+    env.state['e_k'] = 1
+
+    # Set the helicopter loading decision
+    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    # Reset the state of the env such that there are 12 individuals at the 
+    # evacuation site.
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    for _ in range(12):
+        individual = {}
+        individual['arrival_time'] = 0
+        individual['category'] = 'white'
+        individual['white'] = 12
+        individual['green'] = 15
+        individual['yellow'] = 18
+        individual['red'] = 21
+        individual['black'] = np.nan
+
+        env.exog_med_transitions_evac = pd.concat([
+            env.exog_med_transitions_evac, \
+            pd.DataFrame(individual, index = [0])],
+            ignore_index = True
+        )
+    
+    # Drop the rows in the env's event queue and add a specific row to load the
+    # helicopter at a given time (e_k = 1, tau_k = 12).
+    env.queue.queue.drop(env.queue.queue.index, inplace = True)
+    env.queue.put(tau_k = 12, e_k = 2, setRelative = True)
+
+    # Given the decision to load 10 individuals onto the helicopter and the time
+    # to the next event, the remaining two individuals at the evacuation site 
+    # should transition to the green triage category.
+
+    # Calling _compute_delta_hat_k with e_k = 1 will result in the delta_hat_e_k
+    # and delta_hat_s_k being computed. 
+
+    expected_delta_hat_e_k = {'white' : 0, 'green' : 2, 'yellow' : 0, \
+                              'red' : 0, 'black' : 0}
+    expected_delta_hat_s_k = {'white' : 0, 'green' : 0, 'yellow' : 0, \
+                              'red' : 0, 'black' : 0}
+    
+    result = env._exog_info_fn(decision)
+
+    assert expected_delta_hat_e_k == result['delta_hat_e_k']
+    assert expected_delta_hat_s_k == result['delta_hat_s_k']
+    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_su']
+    assert env.queue.queue['e_k'][0] == 3
+
+def test_exog_info_fn_3(initial_state, seed):
+    """Test the _exog_info_fn method when the next event is to unload a
+    ship
+
+    Test the _exog_info_fn method when the next event is to unload a 
+    ship. This event occurs when e_hat_{k + 1} is one.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)    
+    
+    # Set the current event to a helicopter loading event (e_k = 1)
+    env.state['e_k'] = 1
+
+    # Set the helicopter loading decision
+    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    # Reset the state of the env such that there are 12 individuals at the 
+    # evacuation site.
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    for _ in range(12):
+        individual = {}
+        individual['arrival_time'] = 0
+        individual['category'] = 'white'
+        individual['white'] = 12
+        individual['green'] = 15
+        individual['yellow'] = 18
+        individual['red'] = 21
+        individual['black'] = np.nan
+
+        env.exog_med_transitions_evac = pd.concat([
+            env.exog_med_transitions_evac, \
+            pd.DataFrame(individual, index = [0])],
+            ignore_index = True
+        )
+    
+    # Drop the rows in the env's event queue and add a specific row to load the
+    # helicopter at a given time (e_k = 1, tau_k = 12).
+    env.queue.queue.drop(env.queue.queue.index, inplace = True)
+    env.queue.put(tau_k = 12, e_k = 3, setRelative = True)
+
+    # Given the decision to load 10 individuals onto the helicopter and the time
+    # to the next event, the remaining two individuals at the evacuation site 
+    # should transition to the green triage category.
+
+    # Calling _compute_delta_hat_k with e_k = 1 will result in the delta_hat_e_k
+    # and delta_hat_s_k being computed. 
+
+    expected_delta_hat_e_k = {'white' : 0, 'green' : 2, 'yellow' : 0, \
+                              'red' : 0, 'black' : 0}
+    expected_delta_hat_s_k = {'white' : 0, 'green' : 0, 'yellow' : 0, \
+                              'red' : 0, 'black' : 0}
+    
+    result = env._exog_info_fn(decision)
+
+    assert expected_delta_hat_e_k == result['delta_hat_e_k']
+    assert expected_delta_hat_s_k == result['delta_hat_s_k']
+    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_sl']
+    assert env.queue.queue['e_k'][0] == 2
+
+def test_step(initial_state, seed):
+    """Test the step method.
+
+    Test the step method.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)    
+
+    # Set the helicopter loading decision
+    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    # Set the state S_k
+    env.state = {'tau_k' : 0, 'e_k' : 1, \
+        'rho_e_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}
+    }
+
+    # Reset the state of the env such that there are 10 individuals at the 
+    # evacuation site.
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    for _ in range(10):
+        individual = {}
+        individual['arrival_time'] = 0
+        individual['category'] = 'white'
+        individual['white'] = 12
+        individual['green'] = 15
+        individual['yellow'] = 18
+        individual['red'] = 21
+        individual['black'] = np.nan
+
+        env.exog_med_transitions_evac = pd.concat([
+            env.exog_med_transitions_evac, \
+            pd.DataFrame(individual, index = [0])],
+            ignore_index = True
+        )    
+
+    # Set the queue for the next state
+    env.queue.queue.drop(env.queue.queue.index, inplace = True)
+    env.queue.put(tau_k = 3, e_k = 1, setRelative = True)    
+
+    # Set the expected reward
+    expected_reward = 10
+
+    # Set the state variable S_k for the test
+    expected_state = {'tau_k' : 3, 'e_k' : 1, \
+        'rho_e_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}
+    }
+
+    # Call the step function 
+    nextState, reward, terminated, truncated, info = env.step(decision)
+
+    assert expected_reward == reward   
+    assert terminated == True
+    assert truncated == False
+    assert info == {}

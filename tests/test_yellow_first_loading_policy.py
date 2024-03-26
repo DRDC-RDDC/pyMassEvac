@@ -1,7 +1,12 @@
 import pytest
 from gym_mass_evacuation import mass_evacuation_policy 
     
-def test_yellowFirstLoadingPolicy_1():
+@pytest.fixture
+def seed():
+    
+    return 49871037
+
+def test_yellowFirstLoadingPolicy_1(seed):
     """Test the yellow-first loading policy when e_k == 1.
 
     Test whether the yellow-first loading policy returns a dict that
@@ -9,7 +14,7 @@ def test_yellowFirstLoadingPolicy_1():
     followed by white, green, and then red.
     """
 
-    p = mass_evacuation_policy.MassEvacuationPolicy()
+    p = mass_evacuation_policy.MassEvacuationPolicy(seed)
 
     # Set the state variable S_k for the test
     S_k = {'tau_k' : 0, 'e_k' : 1, \
@@ -33,7 +38,7 @@ def test_yellowFirstLoadingPolicy_1():
 
     assert decision == expected_value
 
-def test_yellowFirstLoadingPolicy_2():
+def test_yellowFirstLoadingPolicy_2(seed):
     """Test the yellow-first loading policy when e_k == 2 and there is no
     available capacity onboard the ship.
 
@@ -42,7 +47,7 @@ def test_yellowFirstLoadingPolicy_2():
     followed by white, green, and then red.
     """
 
-    p = mass_evacuation_policy.MassEvacuationPolicy()
+    p = mass_evacuation_policy.MassEvacuationPolicy(seed)
 
     # Set the state variable S_k for the test
     S_k = {'tau_k' : 0, 'e_k' : 2, \
@@ -66,7 +71,7 @@ def test_yellowFirstLoadingPolicy_2():
 
     assert decision == expected_value
 
-def test_greenFirstLoadingPolicy_3():
+def test_greenFirstLoadingPolicy_3(seed):
     """Test the yellow-first loading policy when e_k == 2 and there is 
     available capacity onboard the ship.
 
@@ -75,7 +80,7 @@ def test_greenFirstLoadingPolicy_3():
     followed by white, green, and then red.
     """
 
-    p = mass_evacuation_policy.MassEvacuationPolicy()
+    p = mass_evacuation_policy.MassEvacuationPolicy(seed)
 
     # Set the state variable S_k for the test
     S_k = {'tau_k' : 0, 'e_k' : 2, \
@@ -99,7 +104,7 @@ def test_greenFirstLoadingPolicy_3():
 
     assert decision == expected_value
 
-def test_yellowFirstLoadingPolicy_4():
+def test_yellowFirstLoadingPolicy_4(seed):
     """Test the yellow-first loading policy when e_k == 3.
 
     Test whether the yellow-first loading policy returns a dict that states
@@ -107,7 +112,7 @@ def test_yellowFirstLoadingPolicy_4():
     unloaded.
     """
 
-    p = mass_evacuation_policy.MassEvacuationPolicy()
+    p = mass_evacuation_policy.MassEvacuationPolicy(seed)
 
     # Set the state variable S_k for the test
     S_k = {'tau_k' : 0, 'e_k' : 3, \
