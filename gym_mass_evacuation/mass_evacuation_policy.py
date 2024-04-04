@@ -1,28 +1,49 @@
-"""
-Mass evacuation benchmark decision policies
+"""Decision policy module.
+
+This module provide a class that implements the set of decision poliices used
+in the recent article by Rempel in the journal Safety Science (vol. 171, 
+106379, 2024). 
 
 """
 
-import pandas as pd
 import numpy as np
-import math
 
-class MassEvacuationPolicy():
+class MassEvacuationPolicy:
+    """This class provides the set of decision poliices used in Rempel (2024). [1]_
+
+    This class provides the set of decision policies used in Rempel (2024).[1]_
+    The set of decision policies (see Section 4.3 of Rempel (2024), and Table 
+    4) are used across the three decisions in `x_k` --- helicopter loading 
+    (`x_hl_k`), ship loading (`x_sl_k`), and ship unloading (`x_su_k`). Using
+    Powell's decision policy classes, each policy in this module is an
+    instance of a policy function approximation and, in general, is given as 
+    x_k = X^\\pi(S_k).
+
+    Attributes
+    ----------
+    seed : int
+        Integer that is the seed for all random number generators used in
+        the decision policies.
+
+    References
+    ----------
+    .. [1] M. Rempel, "Modelling a major maritime disaster scenario using the   
+        universal modelling framework for sequential decisions", Safety 
+        Science, vol. 171, 106379, 2024.
+    """
 
     def __init__(self, seed):
-        """Initialize a policy object.
+        """Initialize a decision policy object.
 
         The policy class contains the set of policy function
-        approximations that were explored in Rempel (2024):
+        approximations that were explored in Rempel (2024) [1]_:
         green-first loading policy, yellow-first loading policy,
         critical-first loading policy, random loading / unloading
         policy, white-tags only unloading policy. See Table 4
         in Rempel (2024).
 
-        In addition, a do_nothing policy is implemented.
+        In addition, a do nothing policy is implemented.
 
-        Since there is nothing to initialize for this class, the
-        __init__ function does not perform any actions.
         """
 
         self.rng = np.random.default_rng(seed)
@@ -33,28 +54,30 @@ class MassEvacuationPolicy():
         """This policy returns a decision to do nothing.
 
         This policy returns a decision to do nothing. It may be
-        used for testing purposes, or to implement a situation in
+        used for testing purposes, or in a situation in
         which the helicopter or ship effectively do not make a
         decision.
 
         Returns
         -------
-        dict
+        decision : dict
             Decision with four key-value pairs that describe the
-            number of individuals that have been selected to take
-            an action in each medical triage category.
+            number of individuals that have been selected in each 
+            medical triage category. Each key-value pair represents 
+            the number of individuals selected from a triage 
+            category, e.g., `white` : 2, `green` : 3, etc.
         """
 
         # This decision policy does nothing
-        decision = {'white': 0, 
+        decision = {'white': 0,
                     'green': 0, 
                     'yellow': 0, 
                     'red': 0, 
                     'black': 0}        
-        
+       
         return decision
 
-    def greenFirstLoadingPolicy(self, state, params):
+    def green_first_loading_policy(self, state, params):
         """Green-first loading policy.
 
         This method implements the green-first loading policy. It
@@ -66,7 +89,7 @@ class MassEvacuationPolicy():
         state : dict
             State of the mass evacuation problem as described in
             equation (1) in Rempel (2024). Dict contains four 
-            key-value pairs: tau_k, e_k, rho_e_k, and rho_s_k.
+            key-value pairs: `tau_k`, `e_k`, `rho_e_k`, and `rho_s_k`.
         params : dict
             Policy parameters that provide constraints on the 
             decision: total_capacity is the total capacity available 

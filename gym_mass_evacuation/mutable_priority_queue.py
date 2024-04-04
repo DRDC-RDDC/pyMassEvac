@@ -1,7 +1,15 @@
+"""Mutable priority queue module.
+
+This module provides a class that implements a mutable priority queue. The
+queue contains a list of upcoming events that will occur in the mass 
+evacuation scenario.
+
+"""
+
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
-class MutablePriorityQueue():
+class MutablePriorityQueue:
 
     def __init__(self):
 

@@ -1,5 +1,5 @@
 import pytest
-from gym_mass_evacuation import mass_evacuation_policy 
+from gym_mass_evacuation import mass_evacuation_policy
     
 @pytest.fixture
 def seed():
