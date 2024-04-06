@@ -1,9 +1,38 @@
 """
-This module provides a gymnsium environment to study a mass evacuation 
-scenario. The transport of individuals from an evacuation site is performed via 
-helicopter. In addition, a ship remains on site which aims to provide medical
-assistance to improve the medical condition of individuals at the
-evacuation location.
+This module provides a custom gymnasium environment that implements the 
+multi-domain mass evacuation problem described in Rempel (2024). Specifically,
+the environment models the transport of individuals from an evacuation site 
+via one or more helicopters, while one or more ships remain at the site with
+the aim to provide medical assistance.
+
+Within this environment, as the scenario progresses through time there are 
+three types of decisions that are to be made: (i) which individuals waiting at 
+the evacuation site are to be loaded onto a helicopter for transportation to
+a forward operating base; (ii) which individuals are to be loaded from the
+evacuation site onto a ship in order to receive medical attention; and (iii) 
+which individuals are to be unloaded from the ship and return to the evacuation 
+site so that others may board the ship and receive medical attention. 
+
+Between these decisions being made, the individuals' medical conditions
+change due to a variety of factors. While at the evacuation site, an 
+individual's condition will deteriorate, while onboard the ship their
+condition will improve. Once loaded onto a helicopter, their condition
+is assumed to remain stable, and they are considered saved. The objective
+of the multi-domain mass evacuation problem given in this environment is 
+then to save the greatest number of lives possible (see equation (9) in 
+Rempel (2024)) by seeking good policies for the three types of decisions
+described above.
+
+Throughout this module, the documentation will refer to Rempel (2024). For
+a full description of the scenario, see Section 3. For a description of the
+sequential decision problem that is implemented in this environment, see
+Section 4.
+
+The reference for the Rempel (2024) is as follows.
+
+M. Rempel, "Modelling a major maritime disaster scenario using the   
+universal modelling framework for sequential decisions", Safety 
+Science, vol. 171, 106379, 2024.
 """
 
 import math
@@ -18,7 +47,7 @@ from gym_mass_evacuation.mutable_priority_queue import MutablePriorityQueue
 
 class MassEvacuation(gym.Env):
 
-    """A custom gymnasium environment to study a mass evacuation scenario.
+    """A gymnasium environment of a multi-domain mass evacuation scenario.
     """
     
     def __init__(self, initial_state, \
@@ -185,10 +214,10 @@ class MassEvacuation(gym.Env):
 
 
     def _compute_reward(self, action):
-        """Compute the contribution for taking an action.
+        """Compute the contribution (or reward) for taking an action.
 
         The contribution function C(S_k, x_k) is the immediate reward 
-        received when making a decision. See equation (8) in Rempel (2024).
+        received when taking an action. See equation (8) in Rempel (2024).
         A contribution (or reward) is only recieved when a decision is made
         to load a helicopter, i.e., `self.state[e_k]` = 1, and the reward 
         received is equal to the number of individuals loaded onto the
@@ -199,9 +228,11 @@ class MassEvacuation(gym.Env):
         action : dict
             A dict of three actions: (i) load a helicopter `x_hl_k`; 
             (ii) load a ship `x_sl_k`; and (iii) unload a ship `x_su_k`. 
-            Each value is itself a dict with key-value pairs that 
-            represent the number of individuals selected from the 
-            `white`, `green`, `yellow`, and `red` triage categories.
+            The value of each of these keys is itself a dict with key-value 
+            pairs that represent the number of individuals selected from the 
+            `white`, `green`, `yellow`, and `red` triage categories. Note that
+            individuals in the `black` triage category (deceased) are not 
+            loaded onto a helicopter.
 
             For example, `action['x_hl_k'] = {'white' : 5, 'green' : 2,
             'yellow' : 1, 'red' : 0}`.
@@ -209,7 +240,7 @@ class MassEvacuation(gym.Env):
         Returns
         -------
         reward : int
-            The reward (or contribution) received when loading a helicopter,
+            The contribution (or reward) received when loading a helicopter,
             i.e., the number of individuals loaded onto the helicopter; zero
             otherwise.
         """
@@ -244,12 +275,13 @@ class MassEvacuation(gym.Env):
 
         Reset the environment to its initial state. The reset can occur in 
         either one of two ways. First, such that a single scenario is used, 
-        (`single_scenario = True`) as in Rempel (2024); or second such that 
-        a different randomly selected scenario is initiated. The difference 
-        between these two options is the sampled inter-transition times between 
-        medical categories for individuals. When `single_scenario = True`, the 
-        times generated in the `__init__` method are used; when 
-        `single_sceanrio = False`, new times are sampled.
+        (`options[single_scenario] = True`) as in Rempel (2024); or second such 
+        that a different randomly selected scenario is initiated. The 
+        difference between these two options is the sampled inter-transition 
+        times between medical categories for individuals. When 
+        `optionssingle_scenario] = True`, the times generated in the `__init__` 
+        method are used; when `options[single_sceanrio] = False`, new times are 
+        sampled.
 
         Parameters
         ----------
@@ -366,8 +398,8 @@ class MassEvacuation(gym.Env):
         -----
         The step method calls the following non-public methods. 
 
-            - Compute reward : call _compute_reward()
-            - Get exogenous information : call _exog_info_fn()
+            - Compute reward : _compute_reward()
+            - Get exogenous information : _exog_info_fn()
             - Compute next state : _transition_fn()    
 
         In turn, _exog_info_fn() calls _compute_delta_hat_k(), which itself
