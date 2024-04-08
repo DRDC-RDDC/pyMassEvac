@@ -2,37 +2,48 @@
 This module provides a custom gymnasium environment that implements the 
 multi-domain mass evacuation problem described in Rempel (2024). Specifically,
 the environment models the transport of individuals from an evacuation site 
-via one or more helicopters, while one or more ships remain at the site with
-the aim to provide medical assistance.
+via one or more helicopters to a forward operating location, while one or more 
+ships remain at the site with the aim to provide medical assistance. Given a 
+limited number of helicotpers and ships, each with their own limited capacity, 
+and that the medical condition of individuals is changing over time, the 
+objective is to transport as many individuals from the evacuation site as 
+possible.
 
-Within this environment, as the scenario progresses through time there are 
-three types of decisions that are to be made: (i) which individuals waiting at 
-the evacuation site are to be loaded onto a helicopter for transportation to
-a forward operating base; (ii) which individuals are to be loaded from the
-evacuation site onto a ship in order to receive medical attention; and (iii) 
-which individuals are to be unloaded from the ship and return to the evacuation 
-site so that others may board the ship and receive medical attention. 
+Within this scenario there are three types of decisions that are to be made: 
+(i) which individuals waiting at the evacuation site are to be loaded onto a 
+helicopter for transportation to a forward operating location; (ii) which 
+individuals are to be loaded from the evacuation site onto a ship in order to 
+receive medical attention; and (iii) which individuals are to be unloaded from 
+the ship and return to the evacuation site so that others may board the ship 
+and receive medical attention. 
 
 Between these decisions being made, the individuals' medical conditions
 change due to a variety of factors. While at the evacuation site, an 
-individual's condition will deteriorate, while onboard the ship their
+individual's condition will deteriorate; while onboard the ship their
 condition will improve. Once loaded onto a helicopter, their condition
-is assumed to remain stable, and they are considered saved. The objective
-of the multi-domain mass evacuation problem given in this environment is 
-then to save the greatest number of lives possible (see equation (9) in 
-Rempel (2024)) by seeking good policies for the three types of decisions
-described above.
+is assumed to remain stable, and they are considered saved. Given the
+decisions that are to be made and the dynamics of the environment, as stated
+above the objective is to save the greatest number of lives possible. 
+Specifically, this is formulated as the maximimization of the expected
+value of the sum of the number of individuals transported via helicopters - 
+see equation (9) in Rempel (2024). The question then becomes, what are good
+decision policies that maximize this expected value?
 
 Throughout this module, the documentation will refer to Rempel (2024). For
 a full description of the scenario, see Section 3. For a description of the
 sequential decision problem that is implemented in this environment, see
-Section 4.
+Section 4. In addition, the notation used throughout the code follows that
+laid out in Powell (2022), Chapter 9.
 
-The reference for the Rempel (2024) is as follows.
+The reference for the Rempel (2024) and Powell (2022) are as follows.
 
 M. Rempel, "Modelling a major maritime disaster scenario using the   
 universal modelling framework for sequential decisions", Safety 
 Science, vol. 171, 106379, 2024.
+
+W. Powell, "Reinforcemnt learning and stochastic optimization: A
+unified framework for sequential decisions", Wiley, Hoboken, New, 
+Jersey, 2022.
 """
 
 import math
@@ -219,7 +230,7 @@ class MassEvacuation(gym.Env):
         The contribution function C(S_k, x_k) is the immediate reward 
         received when taking an action. See equation (8) in Rempel (2024).
         A contribution (or reward) is only recieved when a decision is made
-        to load a helicopter, i.e., `self.state[e_k]` = 1, and the reward 
+        to load a helicopter, i.e., `self.state['e_k']` = 1, and the reward 
         received is equal to the number of individuals loaded onto the
         helicopter.
 
@@ -232,7 +243,7 @@ class MassEvacuation(gym.Env):
             pairs that represent the number of individuals selected from the 
             `white`, `green`, `yellow`, and `red` triage categories. Note that
             individuals in the `black` triage category (deceased) are not 
-            loaded onto a helicopter.
+            loaded onto a helicopter or ship.
 
             For example, `action['x_hl_k'] = {'white' : 5, 'green' : 2,
             'yellow' : 1, 'red' : 0}`.
@@ -263,9 +274,10 @@ class MassEvacuation(gym.Env):
             The current state of the environment S_k as defined in equation (1) 
             of Rempel (2024). The state consists of four components: the kth 
             event `e_k`; the current system time `tau_k`; `rho_e_k`, the number 
-            of individuals in each triage category `t` at the evacuation site;
-            and `rho_s_k`, the number of individuals in each triage category `t`
-            onboard the ship.
+            of individuals in each triage category at the evacuation site;
+            and `rho_s_k`, the number of individuals in each triage category
+            onboard the ship. Both `rho_e_k` and `rho_s_k` are dicts with keys:
+            `white`, `green`, `yellow`, `red`, and `black`.
         """
 
         return self.state
@@ -275,18 +287,18 @@ class MassEvacuation(gym.Env):
 
         Reset the environment to its initial state. The reset can occur in 
         either one of two ways. First, such that a single scenario is used, 
-        (`options[single_scenario] = True`) as in Rempel (2024); or second such 
-        that a different randomly selected scenario is initiated. The 
+        (`options['single_scenario'] = True`) as in Rempel (2024); or second, 
+        such that a different randomly selected scenario is initiated. The 
         difference between these two options is the sampled inter-transition 
         times between medical categories for individuals. When 
-        `optionssingle_scenario] = True`, the times generated in the `__init__` 
-        method are used; when `options[single_sceanrio] = False`, new times are 
-        sampled.
+        `options['single_scenario'] = True`, the times generated in the 
+        `__init__` method are used - `self.initial_med_transitions_evac` and
+        `self.initial_med_transitions_ship`. When `options['single_sceanrio'] = False`, new times are sampled.
 
         Parameters
         ----------
         seed : int, optional
-            Random seed, by default None. Not used in this implementation.
+            Random seed, by default `None`. Not used in this implementation.
         options : dict
             A dict that consists of one option that is used to reset the 
             environment: `single_scenario`. 
@@ -294,7 +306,7 @@ class MassEvacuation(gym.Env):
             If `single_scenario` is `True`, then the sampled medical category 
             transition times given in the __init__ function are used to reset 
             the environment; if `False`, new transition times are sampled;
-            by default False.
+            default is `False`.
 
         Returns
         -------
@@ -302,18 +314,23 @@ class MassEvacuation(gym.Env):
             Initial state S_k of the reset environment. The state consists of 
             four components: the kth event `e_k`; the current system time 
             `tau_k`; `rho_e_k`, the number of individuals in each triage 
-            category `t` at the evacuation site; and `rho_s_k`, the number of 
-            individuals in each triage category `t` onboard the ship.
+            category at the evacuation site; and `rho_s_k`, the number of 
+            individuals in each triage category onboard the ship. Both 
+            `rho_e_k` and `rho_s_k` are dicts with keys: `white`, `green`, 
+            `yellow`, `red`, and `black`.
         info : None
             Required by gymnasium, but not used.
         """
+
+        # Get the `single_sceanrio` option; default is False
+        single_scenario = options.get('single_sceanrio', False)
 
         # Reset the state to its original values
         self.state = {
             'tau_k' : 0,
             'e_k' : 0,
-            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
-            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0}
+            'rho_e_k' : self.initial_state['rho_e_k'],
+            'rho_s_k' : self.initial_state['rho_s_k']
         }
 
         # Reset the queue and add the arrival time for the helicopters and 
@@ -331,7 +348,7 @@ class MassEvacuation(gym.Env):
 
         # If a single sceanrio is selected, reset the individual's medical
         # transition times to those generated in the __init__ method.
-        if options['single_scenario'] is True:
+        if single_scenario is True:
 
             self.exog_med_transitions_evac = copy.deepcopy(self.initial_med_transitions_evac)
             self.exog_med_transitions_ship = copy.deepcopy(self.initial_med_transitions_ship)
@@ -339,8 +356,8 @@ class MassEvacuation(gym.Env):
         else:
 
             # Multi-sceanrio in terms of the sampled transition times, not the
-            # initial number of individuals in each triage category at the 
-            # evacuation site
+            # initial number of individuals in each triage category at the
+            # evacuation site.
 
             # Reset the exogenous information that describes transitions of the
             # individuals between medical triage levels
@@ -361,21 +378,25 @@ class MassEvacuation(gym.Env):
     def step(self, action):
         """Transition the environment to the next state.
 
-        This method performs three steps. First, it computes the immediate 
-        reward that is received if the decision taken was to load a 
-        helicopter, i.e., `x_hl_k`. Second, it determines the exogenous 
-        information `W_k_plus_one` that arrives after the decision was made 
-        (see Section 4.1.3 of Rempel (2024)). Third, it implements the 
-        transition to the next state `S_k_plus_one`.
+        This method executes three components of the sequential decision 
+        problem. First, it computes the immediate reward that is received if 
+        the decision taken was to load a helicopter, i.e., `action['x_hl_k']`,
+        see equation (8) in Rempel (2024). Second, it determines the exogenous 
+        information `W_k_plus_one` that arrives after the decision was made, 
+        see Section 4.1.3 of Rempel (2024). Third, it implements the 
+        transition to the next state S_k_plus_one, see Section 4.1.3 of Rempel 
+        (2024).
 
         Parameters
         ----------
         action : dict
             A dict of three actions: (i) load a helicopter `x_hl_k`; 
             (ii) load a ship `x_sl_k`; and (iii) unload a ship `x_su_k`. 
-            Each value is itself a dict with key-value pairs that 
-            represent the number of individuals selected from the 
-            `white`, `green`, `yellow`, and `red` triage categories.
+            The value of each of these keys is itself a dict with key-value 
+            pairs that represent the number of individuals selected from the 
+            `white`, `green`, `yellow`, and `red` triage categories. Note that
+            individuals in the `black` triage category (deceased) are not 
+            loaded onto a helicopter or ship.
 
             For example, `action['x_hl_k'] = {'white' : 5, 'green' : 2,
             'yellow' : 1, 'red' : 0}`.
@@ -383,9 +404,9 @@ class MassEvacuation(gym.Env):
         Returns
         -------
         next_state : dict
-            The next state `S_k_plus_one`.
+            The next state S_k_plus_one.
         reward : int
-            The contribution received is the decision taken was to 
+            The contribution received if the decision taken was to 
             load a helicopter, i.e., `x_hl_k`.
         terminated : boolean
             True if the environment was stopped, False otherwise.
@@ -398,22 +419,23 @@ class MassEvacuation(gym.Env):
         -----
         The step method calls the following non-public methods. 
 
-            - Compute reward : _compute_reward()
-            - Get exogenous information : _exog_info_fn()
-            - Compute next state : _transition_fn()    
+            - Compute reward : `_compute_reward(action)`
+            - Get exogenous information : `_exog_info_fn(action)`
+            - Compute next state : `_transition_fn(action, exog_info)`    
 
-        In turn, _exog_info_fn() calls _compute_delta_hat_k(), which itself
-        calls several non-public methods. Note that the the order the 
-        non-public methods are called in _compute_delta_hat_k() are dependent 
+        In turn, `_exog_info_fn()` calls `_compute_delta_hat_k()`, which itself
+        calls several non-public methods. Note that the order the 
+        non-public methods are called in `_compute_delta_hat_k()` are dependent 
         upon the state S_k.
 
-            - Update medical conditions : _update_medical_condition()
-            - Remove individuals : _remove_individuals()
-            - Add individuals : _add_individuals()
+            - Update medical conditions : `_update_medical_condition(tau_hat_k, location)`
+            - Remove individuals : `_remove_individuals(action, location)`
+            - Add individuals : `_add_individuals(action, location)`
 
-        Note that _remove_individuals() and _add_individuals() take a specific 
-        action, either `x_hl_k`, `x_sl_k`, or `x_su_k` as a parameter rather 
-        than a dict that contains all three decisions
+        Note that `_remove_individuals()` and `_add_individuals()` take a 
+        specific action, either `action['x_hl_k']`, `action['x_sl_k']`, or 
+        `action['x_su_k']` as a parameter rather than a dict that contains all 
+        three decisions.
         """
 
         next_state = copy.deepcopy(self.state)
@@ -448,8 +470,7 @@ class MassEvacuation(gym.Env):
     def close(self):
         """Close the mass evacuation environment.
 
-        This method closes the mass evacuation environment. It performs
-        no actions.
+        This method closes the mass evacuation environment.
         """
 
         return
@@ -458,7 +479,7 @@ class MassEvacuation(gym.Env):
         """Compute the render frames as specified by render_mode 
         during the initialization of the environment.
 
-        This function does not perform any actions. No render is computed.
+        No render is computed.
         """
 
         return
@@ -466,14 +487,14 @@ class MassEvacuation(gym.Env):
     def _add_individuals(self, action, location):
         """Add individuals to a location's exogenous information data frame.
 
-        Given the action to add individuals to a location, either 'ship'
-        (`x_sl_k`) or 'evac' (`x_su_k`), create new rows in the exogenous 
-        information data frame and sample the individuals' transition time 
-        between the allowed medical triage categories.
+        Given the action to add individuals to a location, either `ship`
+        (`action['x_sl_k']`) or `evac` (`action['x_su_k']`), create new rows in 
+        the exogenous information data frame and sample the individuals' 
+        transition time between the allowed medical triage categories.
 
-        When adding individuals to the 'ship', the data frame 
-        self.exog_med_transitions_ship is updated. When adding individuals
-        to the `evac` site, the data frame self.exog_med_transitions_evac
+        When adding individuals to the `ship`, the data frame 
+        `self.exog_med_transitions_ship` is updated. When adding individuals
+        to the `evac` site, the data frame `self.exog_med_transitions_evac`
         is updated.
 
         Parameters
@@ -481,10 +502,10 @@ class MassEvacuation(gym.Env):
         action : dict
             A dict that describes the number of individuals in each triage
             category that are being moved to a location. When location is
-            'ship', action should be `x_k[x_sl_k]`; when location is 'evac',
-            action should be `x_k[x_su_k]`.
+            `ship`, action should be `action['x_sl_k']`; when location is 
+            `evac`, action should be `action['x_su_k']`.
         location : str
-            Either 'evac' or 'ship'.
+            Either `evac` or `ship`.
         """
 
         # Define the valid transitions between triage categories that are 
@@ -587,13 +608,14 @@ class MassEvacuation(gym.Env):
     def _remove_individuals(self, action, location):
         """Remove individuals from a location's exogenous information data frame.
 
-        Given the action to remove individuals to a location, either 'ship'
-        (`x_su_k`) or 'evac' (`x_hl_k` or `x_sl_k`), delete appropriate rows in 
-        the exogenous information data frame.
+        Given the action to remove individuals to a location, either `ship`
+        (`action['x_su_k']`) or `evac` (`action['x_hl_k']` or 
+        `action['x_sl_k']`), delete appropriate rows in the exogenous 
+        information data frame.
 
-        When removing individuals to the 'ship', the data frame 
-        self.exog_med_transitions_ship is updated. When removing individuals
-        to the `evac` site, the data frame self.exog_med_transitions_evac
+        When removing individuals to the `ship`, the data frame 
+        `self.exog_med_transitions_ship` is updated. When removing individuals
+        to the `evac` site, the data frame `self.exog_med_transitions_evac`
         is updated.
 
         Parameters
@@ -601,10 +623,10 @@ class MassEvacuation(gym.Env):
         action : dict
             A dict that describes the number of individuals in each triage
             category that are being removed a location. When location is
-            'ship', action should be `x_k[x_su_k]`; when location is 'evac',
-            action should be `x_k[x_hl_k]` or `x_k[x_sl_k]`.
+            `ship`, action should be `action['x_su_k']`; when location is 
+            `evac`, action should be `action['x_hl_k']` or `action['x_sl_k']`.
         location : str
-            Either 'evac' or 'ship'.
+            Either `evac` or `ship`.
         """
 
         idx = list()
@@ -647,12 +669,12 @@ class MassEvacuation(gym.Env):
         """Update the medical triage categories of individuals at a location.
 
         Given the time between when an action is taken and the next action,
-        the medical conditions of individuals at a location change. This method
-        updates the exogenous information data frames 
-        self.exog_med_transitions_evac when `location == evac` and
-        self.exog_med_transitions_ship when `location == ship`. This method
+        the medical conditions of individuals at a location stochastically 
+        change. This method updates the exogenous information data frames 
+        `self.exog_med_transitions_evac` when `location` is `evac`, and
+        `self.exog_med_transitions_ship` when `location` is `ship`. This method
         then returns the exogenous information `delta_hat_e_k` or 
-        `delta_hat_s_k`. See section 4.1.3 of Rempel (2024).
+        `delta_hat_s_k` as appropriate. See Section 4.1.3 of Rempel (2024).
 
         Parameters
         ----------
@@ -664,8 +686,8 @@ class MassEvacuation(gym.Env):
         Returns
         -------
         dict
-            Either `delta_hat_e_k` (if `location == evac`) or 
-            `delta_hat_s_k` (if `location == ship`).
+            Either `delta_hat_e_k` (if `location` is `evac`) or 
+            `delta_hat_s_k` (if `location` is `ship`).
         """
 
         # define delta_hat_e_k and delta_hat_s_k, which are the change in the
@@ -756,8 +778,8 @@ class MassEvacuation(gym.Env):
 
         These changes are based not only on the time to the next event k + 1
         as presented by `tau_hat_k`, but also the action that has been taken
-        to load the helicopter (`x_hl_k`), load the ship (`x_sl_k`), or unload 
-        the ship (`x_su_k`).
+        to load the helicopter `action['x_hl_k']`, load the ship 
+        `action['x_sl_k']`, or unload the ship `action['x_su_k']`.
 
         Parameters
         ----------
@@ -859,18 +881,18 @@ class MassEvacuation(gym.Env):
         """Get the exogenous information that arrives after an action is taken.
 
         This method returns the W_k_plus_one vector that represents the 
-        exogenous information that arrives after an action `x_k` is taken. See
+        exogenous information that arrives after an action is taken. See
         equation (7) in Rempel (2024). The exogenous information vector consists
         of four components:
 
-        - updated number of individuals in each triage category at the evacuation site (delta_hat_e_k_plus_one);
-        - updated number of individuals in each triage category on the ship (delta_hat_s_k_plus_one);
-        - event which triggers the next state (e_hat_k_plus_one):
+        - updated number of individuals in each triage category at the evacuation site (`delta_hat_e_k_plus_one`);
+        - updated number of individuals in each triage category on the ship (`delta_hat_s_k_plus_one`);
+        - event which triggers the next state (`e_hat_k_plus_one`):
             - 0: all individuals have arrived at the evac site
             - 1: helo arrives at the evac site and is ready to load individuals
             - 2: ship is ready to load individuals
             - 3: ship is ready to unload individuals
-        - the inter-transition time to the next event (tau_hat_k_plus_one)
+        - the inter-transition time to the next event (`tau_hat_k_plus_one`)
 
         For readability in the code, k_plus_one is dropped from the variables 
         and instead only k is used.
@@ -890,25 +912,24 @@ class MassEvacuation(gym.Env):
             exogenous information vector. The four key-value pairs on
             delta_hat_e_k, delta_hat_s_k, e_hat_k, and tau_hat_k.
         """
-        
-        delta_hat_e_k = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
-        delta_hat_s_k = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
 
         # determine the next event that will take place (e_hat_k)
-        tau_hat_k, e_hat_k = self.queue.get()
+        tau_hat_k_plus_one, e_hat_k_plus_one = self.queue.get()
 
-        medical_transition = self._compute_delta_hat_k(tau_hat_k, action)
+        medical_transition = self._compute_delta_hat_k(tau_hat_k_plus_one, \
+                                                       action)
 
-        # e_hat_k == 1: a helo will be arriving next at the evacuation site and
-        # selecting who to load, so we need to get the updated information for
-        # for evacuation site
-        if e_hat_k == 1:
+        # e_hat_k_plus_one == 1: a helo will be arriving next at the evacuation 
+        # site and selecting who to load, so we need to get the updated 
+        # information for for evacuation site
+        if e_hat_k_plus_one == 1:
 
             # Add the event to the queue when the helicopter will return. 
             self.queue.put(self.initial_state['eta_h'], 1, setRelative = True)
 
-        # e_hat _k == 2: a ship will be arriving next to load individuals
-        if e_hat_k == 2:
+        # e_hat_k_plus_one == 2: a ship will be arriving next to load 
+        # individuals
+        if e_hat_k_plus_one == 2:
 
             # Add the event to the queue when the individuals from the ship will
             # be checked to determine if they are to be removed from the ship
@@ -916,40 +937,51 @@ class MassEvacuation(gym.Env):
             # board the ship and receive medical attention).
             self.queue.put(self.initial_state['eta_su'], 3, setRelative = True)
 
-        # e_hat_k == 3: a ship will be unloading individuals next; schedule
-        # when the next set will be loading
-        if e_hat_k == 3:
+        # e_hat_k_plus_one == 3: a ship will be unloading individuals next; 
+        # schedule when the next set will be loading
+        if e_hat_k_plus_one == 3:
             self.queue.put(self.initial_state['eta_sl'], 2, setRelative = True)
-
-        # return the exogenous information
-        assert delta_hat_s_k['yellow'] >= 0
 
         return {'delta_hat_e_k': medical_transition['delta_hat_e_k'], \
                  'delta_hat_s_k': medical_transition['delta_hat_s_k'], \
-                 'e_hat_k': e_hat_k, 'tau_hat_k': tau_hat_k}
+                 'e_hat_k': e_hat_k_plus_one, 'tau_hat_k': tau_hat_k_plus_one}
 
 
     def _transition_fn(self, action, exog_info):
         """Compute the next state.
 
-        This method implements the transition function described in section
+        This method implements the transition function described in Section
         4.1.3 of Rempel (2024) - S_k_plus_one = S^m(S_k, x_k, W_k_plus_one).
 
         Parameters
         ----------
-        decision : dict
-            A dict that describes the number of individuals in each triage
-            category that are being moved to a location.    
+        action : dict
+            A dict of three actions: (i) load a helicopter `x_hl_k`; 
+            (ii) load a ship `x_sl_k`; and (iii) unload a ship `x_su_k`. 
+            The value of each of these keys is itself a dict with key-value 
+            pairs that represent the number of individuals selected from the 
+            `white`, `green`, `yellow`, and `red` triage categories. Note that
+            individuals in the `black` triage category (deceased) are not 
+            loaded onto a helicopter or ship.
+
+            For example, `action['x_hl_k'] = {'white' : 5, 'green' : 2,
+            'yellow' : 1, 'red' : 0}`.
+
+            Note: `action` is not currently used in this implementation.
+            However, it is included as a parameter to conform with the 
+            notation laid out in Powell (2022) and may be used in future
+            implementations.
+         
         exog_info : dict
             Exogenous information that arrives after a decision is made. 
-            Contains four key-value pairs delta_hat_e_k, delta_hat_s_k,
-            e_hat_k, and tau_hat_k. 
+            Contains four key-value pairs `delta_hat_e_k`, `delta_hat_s_k`,
+            `e_hat_k`, and `tau_hat_k`. 
 
         Returns
         -------
         dict
-            Next state S_{k + 1}. Contains four key-value pairs: tau_k,
-            rho_e_k, rho_s_k, and e_k. See equation (1) in Rempel (2024).
+            Next state S_k_plus_one. Contains four key-value pairs: `tau_k`,
+            `rho_e_k`, `rho_s_k`, and `e_k`. See equation (1) in Rempel (2024).
         """
 
         tau_k = self.state['tau_k'] + exog_info['tau_hat_k']
@@ -959,4 +991,6 @@ class MassEvacuation(gym.Env):
         rho_e_k = exog_info['delta_hat_e_k']
         rho_s_k = exog_info['delta_hat_s_k']
 
-        return {'tau_k': tau_k, 'rho_e_k': rho_e_k, 'rho_s_k': rho_s_k, 'e_k': e_k}
+        return {'tau_k': tau_k, 'rho_e_k': rho_e_k, \
+                'rho_s_k': rho_s_k, \
+                    'e_k': e_k}
