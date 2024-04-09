@@ -3,7 +3,16 @@ from gym_mass_evacuation import mass_evacuation_policy
 
 @pytest.fixture
 def seed():
-    
+    """Define a pytest fixture for the testing seed.
+
+    Define a pytest fixture for the testing seed.
+
+    Returns
+    -------
+    int
+        Seed for use in random number generators.
+    """
+
     return 49871037
 
 def test_do_nothing(seed):

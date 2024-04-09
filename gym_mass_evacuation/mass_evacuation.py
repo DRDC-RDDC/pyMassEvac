@@ -323,7 +323,7 @@ class MassEvacuation(gym.Env):
         """
 
         # Get the `single_sceanrio` option; default is False
-        single_scenario = options.get('single_sceanrio', False)
+        single_scenario = options.get('single_scenario', False)
 
         # Reset the state to its original values
         self.state = {

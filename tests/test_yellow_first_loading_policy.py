@@ -3,11 +3,20 @@ from gym_mass_evacuation import mass_evacuation_policy
     
 @pytest.fixture
 def seed():
-    
+    """Define a pytest fixture for the testing seed.
+
+    Define a pytest fixture for the testing seed.
+
+    Returns
+    -------
+    int
+        Seed for use in random number generators.
+    """
+
     return 49871037
 
-def test_yellowFirstLoadingPolicy_1(seed):
-    """Test the yellow-first loading policy when e_k == 1.
+def test_yellow_first_loading_policy_1(seed):
+    """Test the yellow-first loading policy when `e_k = 1`.
 
     Test whether the yellow-first loading policy returns a dict that
     prioritizes those individuals in the yellow-first triage state,
@@ -34,12 +43,12 @@ def test_yellowFirstLoadingPolicy_1(seed):
     expected_value = {'white' : 1, 'green' : 0, 'yellow' : 3, 'red' : 0, \
                       'black' : 0}
     
-    decision = p.yellowFirstLoadingPolicy(S_k, params)
+    decision = p.yellow_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_yellowFirstLoadingPolicy_2(seed):
-    """Test the yellow-first loading policy when e_k == 2 and there is no
+def test_yellow_first_loading_policy_2(seed):
+    """Test the yellow-first loading policy when `e_k = 2` and there is no
     available capacity onboard the ship.
 
     Test whether the yellow-first loading policy returns a dict that
@@ -67,12 +76,12 @@ def test_yellowFirstLoadingPolicy_2(seed):
     expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
                       'black' : 0}
     
-    decision = p.yellowFirstLoadingPolicy(S_k, params)
+    decision = p.yellow_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_greenFirstLoadingPolicy_3(seed):
-    """Test the yellow-first loading policy when e_k == 2 and there is 
+def test_green_first_loading_policy_3(seed):
+    """Test the yellow-first loading policy when `e_k = 2` and there is 
     available capacity onboard the ship.
 
     Test whether the yellow-first loading policy returns a dict that
@@ -100,12 +109,12 @@ def test_greenFirstLoadingPolicy_3(seed):
     expected_value = {'white' : 5, 'green' : 0, 'yellow' : 5, 'red' : 0, \
                       'black' : 0}
     
-    decision = p.yellowFirstLoadingPolicy(S_k, params)
+    decision = p.yellow_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_yellowFirstLoadingPolicy_4(seed):
-    """Test the yellow-first loading policy when e_k == 3.
+def test_yellow_first_loading_policy_4(seed):
+    """Test the yellow-first loading policy when `e_k = 3`.
 
     Test whether the yellow-first loading policy returns a dict that states
     no individuals will be loaded as e_k == 3 is requesting the ship to be
@@ -127,11 +136,11 @@ def test_yellowFirstLoadingPolicy_4(seed):
              'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
                                       'red' : 3}
              }
-    
+
     # Set the expected return value
     expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
                       'black' : 0}
-    
-    decision = p.yellowFirstLoadingPolicy(S_k, params)
+
+    decision = p.yellow_first_loading_policy(S_k, params)
 
     assert decision == expected_value

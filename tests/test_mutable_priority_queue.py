@@ -40,5 +40,5 @@ def test_get():
     original_shape = q.queue.shape
 
     q.get()
-    
+
     assert original_shape[0] - 1 == q.queue.shape[0]

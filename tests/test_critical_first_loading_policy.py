@@ -3,11 +3,20 @@ from gym_mass_evacuation import mass_evacuation_policy
     
 @pytest.fixture
 def seed():
-    
+    """Define a pytest fixture for the testing seed.
+
+    Define a pytest fixture for the testing seed.
+
+    Returns
+    -------
+    int
+        Seed for use in random number generators.
+    """
+
     return 49871037
 
-def test_criticalFirstLoadingPolicy_1(seed):
-    """Test the critical-first loading policy when e_k == 1.
+def test_critical_first_loading_policy_1(seed):
+    """Test the critical-first loading policy when `e_k = 1`.
 
     Test whether the critical-first loading policy returns a dict that
     prioritizes those individuals in the red-first triage state,
@@ -25,21 +34,21 @@ def test_criticalFirstLoadingPolicy_1(seed):
     }
 
     # Set the policy parameters
-    params = {'total_capacity' : 10, 
-             'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
+    params = {'total_capacity' : 10, \
+              'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
                                       'red' : 3}
              }
-    
+
     # Set the expected return value
     expected_value = {'white' : 0, 'green' : 1, 'yellow' : 0, 'red' : 3, \
                       'black' : 0}
-    
-    decision = p.criticalFirstLoadingPolicy(S_k, params)
+
+    decision = p.critical_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_criticalFirstLoadingPolicy_2(seed):
-    """Test the critical-first loading policy when e_k == 2 and there is no
+def test_critical_first_loading_policy_2(seed):
+    """Test the critical-first loading policy when `e_k = 2` and there is no
     available capacity onboard the ship.
 
     Test whether the critical-first loading policy returns a dict that
@@ -62,17 +71,17 @@ def test_criticalFirstLoadingPolicy_2(seed):
              'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
                                       'red' : 3}
              }
-    
+
     # Set the expected return value
     expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
                       'black' : 0}
-    
-    decision = p.criticalFirstLoadingPolicy(S_k, params)
+
+    decision = p.critical_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_criticalFirstLoadingPolicy_3(seed):
-    """Test the critical-first loading policy when e_k == 2 and there is 
+def test_critical_first_loading_policy_3(seed):
+    """Test the critical-first loading policy when `e_k = 2` and there is 
     available capacity onboard the ship.
 
     Test whether the critical-first loading policy returns a dict that
@@ -91,8 +100,8 @@ def test_criticalFirstLoadingPolicy_3(seed):
     }
 
     # Set the policy parameters
-    params = {'total_capacity' : 20, 
-             'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
+    params = {'total_capacity' : 20, \
+              'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
                                       'red' : 3}
              }
     
@@ -100,11 +109,11 @@ def test_criticalFirstLoadingPolicy_3(seed):
     expected_value = {'white' : 0, 'green' : 2, 'yellow' : 1, 'red' : 5, \
                       'black' : 0}
     
-    decision = p.criticalFirstLoadingPolicy(S_k, params)
+    decision = p.critical_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_criticalFirstLoadingPolicy_4(seed):
+def test_critical_first_loading_policy_4(seed):
     """Test the critical-first loading policy when e_k == 3.
 
     Test whether the critical-first loading policy returns a dict that states
@@ -123,15 +132,15 @@ def test_criticalFirstLoadingPolicy_4(seed):
     }
 
     # Set the policy parameters
-    params = {'total_capacity' : 20, 
-             'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
+    params = {'total_capacity' : 20, \
+              'individual_capacity' : {'white' : 1, 'green' : 1, 'yellow' : 3, \
                                       'red' : 3}
              }
-    
+
     # Set the expected return value
     expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
                       'black' : 0}
-    
-    decision = p.criticalFirstLoadingPolicy(S_k, params)
+
+    decision = p.critical_first_loading_policy(S_k, params)
 
     assert decision == expected_value

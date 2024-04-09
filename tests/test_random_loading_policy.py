@@ -4,13 +4,22 @@ from gym_mass_evacuation import mass_evacuation_policy
 
 @pytest.fixture
 def seed():
-    
+    """Define a pytest fixture for the testing seed.
+
+    Define a pytest fixture for the testing seed.
+
+    Returns
+    -------
+    int
+        Seed for use in random number generators.
+    """
+
     return 49871037
 
 def test_random_loading_policy_1(seed):
-    """Test the random loading policy when e_k = 1.
+    """Test the random loading policy when `e_k = 1`.
 
-    Test the random loading policy when e_k = 1.
+    Test the random loading policy when `e_k = 1`.
 
     Parameters
     ----------
@@ -101,5 +110,4 @@ def test_random_loading_policy_3(seed):
     }
 
     assert expected_result == p.random_loading_policy(state = S_k, \
-                                                      params = params)       
-
+                                                      params = params)

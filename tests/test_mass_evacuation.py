@@ -7,6 +7,15 @@ from gym_mass_evacuation import mass_evacuation
 
 @pytest.fixture
 def initial_state():
+    """Define a pytest fixture for the initial state.
+
+    Define a pytest fixture for the initial state.
+
+    Returns
+    -------
+    dict
+        Dict containing the initial state.
+    """
 
     return {
             'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
@@ -28,6 +37,15 @@ def initial_state():
 
 @pytest.fixture
 def seed():
+    """Define a pytest fixture for the testing seed.
+
+    Define a pytest fixture for the testing seed.
+
+    Returns
+    -------
+    int
+        Seed for use in random number generators.
+    """
 
     return 20180529
 
@@ -143,9 +161,9 @@ def test_observation(initial_state, seed):
     assert expected_result == env.observation()
 
 def test_reset_1(initial_state, seed):
-    """Test the reset method when single_scenario = True.
+    """Test the reset method when `single_scenario = True`.
 
-    Test the reset method when single_scenario = True. In this situation, the
+    Test the reset method when `single_scenario = True`. In this situation, the
     initial start state of the environment is that which was set when the
     environment was initially created.
 
@@ -168,7 +186,9 @@ def test_reset_1(initial_state, seed):
     expected_exog_med_transitions_ship = copy.deepcopy( \
         env.exog_med_transitions_ship)
 
-    env.reset(single_scenario = True)
+    options = {}
+    options['single_scenario'] = True
+    env.reset(options = options)
 
     assert expected_initial_state == env.initial_state
     assert expected_state == env.state
@@ -179,9 +199,9 @@ def test_reset_1(initial_state, seed):
         env.exog_med_transitions_ship)
     
 def test_reset_2(initial_state, seed):
-    """Test the reset method when single_scenario = False.
+    """Test the reset method when `single_scenario = False`.
 
-    Test the reset method when single_scenario = False. In this situation, the
+    Test the reset method when `single_scenario = False`. In this situation, the
     initial start state of the environment is that which was set when the
     environment was initially created.
 
@@ -204,13 +224,15 @@ def test_reset_2(initial_state, seed):
     expected_exog_med_transitions_ship = copy.deepcopy( \
         env.exog_med_transitions_ship)
 
-    env.reset(single_scenario = False)
+    options = {}
+    options['single_scenario'] = False
+    env.reset(options = options)
 
     assert expected_initial_state == env.initial_state
     assert expected_state == env.state
     assert expected_queue.queue.equals(env.queue.queue)
-    assert expected_exog_med_transitions_evac.equals( \
-        env.exog_med_transitions_evac) == False
+    assert not expected_exog_med_transitions_evac.equals( \
+        env.exog_med_transitions_evac)
     assert expected_exog_med_transitions_ship.equals( \
         env.exog_med_transitions_ship)
 
@@ -322,7 +344,7 @@ def test_add_individuals_1(initial_state, seed):
     # exogenous medical transition data frame
     expected_result = env.exog_med_transitions_ship.shape[0] + \
         sum(decision.values())
-    
+
     env._add_individuals(decision, location)
 
     assert expected_result == env.exog_med_transitions_ship.shape[0]
@@ -368,7 +390,7 @@ def test_add_individuals_2(initial_state, seed):
     # exogenous medical transition data frame
     expected_result = env.exog_med_transitions_evac.shape[0] + \
         sum(decision.values())
-    
+
     env._add_individuals(decision, location)
 
     assert expected_result == env.exog_med_transitions_evac.shape[0]
@@ -1125,10 +1147,11 @@ def test_step(initial_state, seed):
                      'black' : 0}
     }
 
-    # Call the step function 
-    nextState, reward, terminated, truncated, info = env.step(decision)
+    # Call the step function
+    next_state, reward, terminated, truncated, info = env.step(decision)
 
-    assert expected_reward == reward   
-    assert terminated == True
-    assert truncated == False
+    assert expected_state == next_state
+    assert expected_reward == reward
+    assert terminated is True
+    assert truncated is False
     assert info == {}
