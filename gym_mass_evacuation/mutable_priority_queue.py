@@ -22,7 +22,10 @@ class MutablePriorityQueue:
             # transform the tau_k's from relative into absolute so that they can
             # be sorted correctly
             for i in range(1, len(self.queue.index)):
-                self.queue.iloc[i]['tau_k'] += self.queue.iloc[i - 1]['tau_k']
+                # self.queue.iloc[i]['tau_k'] += self.queue.iloc[i - 1]['tau_k']
+                new_value = self.queue.loc[i, 'tau_k'] - \
+                    self.queue.loc[i - 1, 'tau_k']
+                self.queue.loc[i, 'tau_k'] = new_value                
 
         # add the event to the queue
         df = pd.DataFrame({'tau_k': tau_k, 'e_k': e_k}, index = [0])
@@ -45,7 +48,10 @@ class MutablePriorityQueue:
         # update the values of tau_k so that they are relative to the next
         # event that will arise
         for r in range(len(self.queue.index) - 1, 0, -1):
-            self.queue['tau_k'][r] -= self.queue['tau_k'][r - 1]
+            #self.queue['tau_k'][r] -= self.queue['tau_k'][r - 1]
+            new_value = self.queue.loc[r, 'tau_k'] - \
+                self.queue.loc[r - 1, 'tau_k']
+            self.queue.loc[r, 'tau_k'] = new_value
 
         #for r in range(1, len(self.queue.index)):
         #    self.queue['tau_k'][r] -= self.queue['tau_k'][r - 1]
