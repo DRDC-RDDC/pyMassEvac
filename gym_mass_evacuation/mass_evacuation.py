@@ -150,7 +150,7 @@ class MassEvacuation(gym.Env):
             # environment. See the definition of the state variable
             # in equation (1).
             self.observation_space = gym.spaces.Dict(
-                { 
+                {
                     'tau_k' : gym.spaces.Discrete(168),
                     'e_k' : gym.spaces.Discrete(3),
                     'rho_e_k' : gym.spaces.Box(0, \
@@ -179,7 +179,7 @@ class MassEvacuation(gym.Env):
                         dtype = np.intc),
                     'x_su_k' : gym.spaces.Box(0, \
                         self.initial_state['c_s'], \
-                        shape = (1,4), 
+                        shape = (1,4),
                         dtype = np.intc)
                 }
             )

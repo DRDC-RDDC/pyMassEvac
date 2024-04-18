@@ -35,7 +35,9 @@ setup(
         "pandas",
         "numpy",
         "matplotlib",
-        "gymnasium"
+        "gymnasium",
+        "tdqm",
+        "seaborn"
     ],
     extras_require={
         "dev": [
