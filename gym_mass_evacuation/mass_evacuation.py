@@ -489,13 +489,13 @@ class MassEvacuation(gym.Env):
             # with a learning algorithm, an invalid action will result in
             # a negative situation occuring and no reward being provided
             action['x_hl_k'] = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
             
             action['x_sl_k'] = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
 
             action['x_su_k'] = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
 
 
         # compute the contribution function - see equation (8).

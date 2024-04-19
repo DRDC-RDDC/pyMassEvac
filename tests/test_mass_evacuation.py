@@ -301,6 +301,37 @@ def test_compute_reward_2(initial_state, seed):
 
     assert expected_reward == env._compute_reward(decision)
 
+def test_compute_reward_3(initial_state, seed):
+    """Test the _compute_reward function when the selected action is not feasible.
+
+    Test the _compute_reward function when selected action is not feasible. 
+    Thus, the reward recieved should be zero.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
+
+    # set the state variable e_k to helicopter loading
+    env.state['e_k'] = 1
+
+    # set the helicopter loading decision
+    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    # define the expected reward - should be zero 
+    expected_reward = 0
+
+    assert expected_reward == env._compute_reward(decision)
+
 def test_add_individuals_1(initial_state, seed):
     """Test the _add_individuals() method when individuals are to be added
     to the ship.
@@ -1082,7 +1113,7 @@ def test_exog_info_fn_3(initial_state, seed):
     assert env.queue.queue['tau_k'][0] == env.initial_state['eta_sl']
     assert env.queue.queue['e_k'][0] == 2
 
-def test_step(initial_state, seed):
+def test_step_1(initial_state, seed):
     """Test the step method.
 
     Test the step method.
@@ -1096,7 +1127,7 @@ def test_step(initial_state, seed):
     """
 
     env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
-                                         seed = seed, default_rng = False)    
+                                         seed = seed, default_rng = False)
 
     # Set the helicopter loading decision
     decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
@@ -1155,3 +1186,79 @@ def test_step(initial_state, seed):
     assert terminated is True
     assert truncated is False
     assert info == {}
+
+def test_step_2(initial_state, seed):
+    """Test the step method when the action is not feasible.
+
+    Test the step method when the action is not feasible. Thus, the step
+    function will not allow the action to occur and will transition to the
+    next state as if no actions were taken.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
+
+    # Set the helicopter loading decision
+    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
+                'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
+    }
+
+    # Set the state S_k
+    env.state = {'tau_k' : 0, 'e_k' : 1, \
+        'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}
+    }
+
+    # Reset the state of the env such that there are 10 individuals at the 
+    # evacuation site.
+    env.exog_med_transitions_evac.drop(env.exog_med_transitions_evac.index, inplace = True)
+
+    for _ in range(10):
+        individual = {}
+        individual['arrival_time'] = 0
+        individual['category'] = 'green'
+        individual['white'] = 12
+        individual['green'] = 15
+        individual['yellow'] = 18
+        individual['red'] = 21
+        individual['black'] = np.nan
+
+        env.exog_med_transitions_evac = pd.concat([
+            env.exog_med_transitions_evac, \
+            pd.DataFrame(individual, index = [0])],
+            ignore_index = True
+        )    
+
+    # Set the queue for the next state
+    env.queue.queue.drop(env.queue.queue.index, inplace = True)
+    env.queue.put(tau_k = 3, e_k = 1, setRelative = True)    
+
+    # Set the expected reward
+    expected_reward = 0
+
+    # Set the state variable S_k for the test
+    expected_state = {'tau_k' : 3, 'e_k' : 1, \
+        'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
+                     'black' : 0}
+    }
+
+    # Call the step function
+    next_state, reward, terminated, truncated, info = env.step(decision)
+
+    assert expected_state == next_state
+    assert expected_reward == reward
+    assert not terminated
+    assert truncated is False
+    assert info == {}    
