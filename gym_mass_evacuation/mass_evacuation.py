@@ -124,7 +124,7 @@ class MassEvacuation(gym.Env):
 
             # Initialize the priority queue. Note that the state variable does not
             # have access to this queue.
-            self.queue = MutablePriorityQueue()    
+            self.queue = MutablePriorityQueue()
 
             # Add the arrival of the helicopters and ships to the event queue. The # arrival times defined in the initial state S_0 are relative to the
             # arrival of the individuals at the evacuation site.
@@ -261,7 +261,22 @@ class MassEvacuation(gym.Env):
 
         # Define the contribution function - see equation (8).
         if self.state['e_k'] == 1:
-            reward = sum(action['x_hl_k'].values())
+
+            # check if action is does not violate the total capacity
+            # constraint of the helicopter - see equation (2) and (3)
+
+            print(list(action['x_hl_k'].values()))
+            print(list(self.state['rho_e_k'].values())[0:4])
+
+            equation_2 = np.dot(list(action['x_hl_k'].values()), \
+                list(self.initial_state['delta_h'].values())) <= \
+                self.initial_state['c_h']
+
+            equation_3 = np.all(list(action['x_hl_k'].values()) <= \
+                list(self.state['rho_e_k'].values())[0:4])
+
+            if np.all([equation_2, equation_3]):
+                reward = sum(list(action['x_hl_k'].values()))
 
         return reward
 
@@ -444,10 +459,49 @@ class MassEvacuation(gym.Env):
         truncated = False
         info = {}
 
+        # check the conditions on the action to determine if it is legal
+        # given the current state - see equations (2) through (6) in
+        # Rempel (2024)
+        equation_2 = np.dot(list(action['x_hl_k'].values()), \
+            list(self.initial_state['delta_h'].values())) <= \
+            self.initial_state['c_h']
+
+        equation_3 = np.all(list(action['x_hl_k'].values()) <= \
+            list(self.state['rho_e_k'].values())[0:4])
+
+        equation_4 = np.all(list(action['x_sl_k'].values()) <= \
+            list(self.state['rho_e_k'].values())[0:4])
+
+        equation_5 = np.dot(list(action['x_sl_k'].values()), \
+                        list(self.initial_state['delta_s'].values())) <= \
+                        self.initial_state['c_s'] - \
+                        np.dot(list(self.state['rho_s_k'].values())[0:4], \
+                        list(self.initial_state['delta_s'].values()))
+
+        equation_6 = np.all(list(action['x_su_k'].values()) <= \
+            list(self.initial_state['rho_s_k'].values())[0:4])
+
+        if not np.all([equation_2, equation_3, equation_4, equation_5, \
+                   equation_6]):
+
+            # the action is invalid, and will be set to null - note this
+            # is done such that when the environment is used in conjunction
+            # with a learning algorithm, an invalid action will result in
+            # a negative situation occuring and no reward being provided
+            action['x_hl_k'] = {'white': 0, 'green': 0, \
+                         'yellow': 0, 'red': 0, 'black': 0}
+            
+            action['x_sl_k'] = {'white': 0, 'green': 0, \
+                         'yellow': 0, 'red': 0, 'black': 0}
+
+            action['x_su_k'] = {'white': 0, 'green': 0, \
+                         'yellow': 0, 'red': 0, 'black': 0}
+
+
         # compute the contribution function - see equation (8).
         reward = self._compute_reward(action)
 
-        # Get the exogenous information
+            # Get the exogenous information
         W_k_plus_one = self._exog_info_fn(action)
 
         # Execute the transition function - see Section 4.1.3, 

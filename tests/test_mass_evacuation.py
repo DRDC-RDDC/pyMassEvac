@@ -20,8 +20,8 @@ def initial_state():
     return {
             'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
             'm_s' : {'green' : 48, 'yellow' : 72, 'red' : 120},
-            'c_h' : 40,
-            'c_s' : 100,
+            'c_h' : 10,
+            'c_s' : 50,
             'delta_h' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
             'delta_s' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
             'eta_h' : 3,
@@ -258,7 +258,7 @@ def test_compute_reward_1(initial_state, seed):
     env.state['e_k'] = 1
 
     # set the helicopter loading decision
-    decision = {'x_hl_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0},
+    decision = {'x_hl_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0},
                 'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
                 'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
