@@ -40,8 +40,7 @@ def test_yellow_first_loading_policy_1(seed):
              }
     
     # Set the expected return value
-    expected_value = {'white' : 1, 'green' : 0, 'yellow' : 3, 'red' : 0, \
-                      'black' : 0}
+    expected_value = {'white' : 1, 'green' : 0, 'yellow' : 3, 'red' : 0}
     
     decision = p.yellow_first_loading_policy(S_k, params)
 
@@ -73,14 +72,13 @@ def test_yellow_first_loading_policy_2(seed):
              }
     
     # Set the expected return value
-    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                      'black' : 0}
+    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     
     decision = p.yellow_first_loading_policy(S_k, params)
 
     assert decision == expected_value
 
-def test_green_first_loading_policy_3(seed):
+def test_yellow_first_loading_policy_3(seed):
     """Test the yellow-first loading policy when `e_k = 2` and there is 
     available capacity onboard the ship.
 
@@ -106,8 +104,7 @@ def test_green_first_loading_policy_3(seed):
              }
     
     # Set the expected return value
-    expected_value = {'white' : 5, 'green' : 0, 'yellow' : 5, 'red' : 0, \
-                      'black' : 0}
+    expected_value = {'white' : 5, 'green' : 0, 'yellow' : 5, 'red' : 0}
     
     decision = p.yellow_first_loading_policy(S_k, params)
 
@@ -138,8 +135,7 @@ def test_yellow_first_loading_policy_4(seed):
              }
 
     # Set the expected return value
-    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                      'black' : 0}
+    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
 
     decision = p.yellow_first_loading_policy(S_k, params)
 

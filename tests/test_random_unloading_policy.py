@@ -38,7 +38,7 @@ def test_random_unloading_policy(seed):
     params = {'numToUnload' : 10}
 
     expected_result = {'white' : 10, 'green' : 0, 'yellow' : 0, \
-                        'red' : 0, 'black' : 0}
+                        'red' : 0}
 
     assert expected_result == p.random_unloading_policy(state = S_k, \
                                                       params = params)

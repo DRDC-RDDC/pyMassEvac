@@ -36,6 +36,6 @@ def test_white_unloading_policy(seed):
     }
 
     expected_result = {'white' : 12, 'green' : 0, 'yellow' : 0, \
-                        'red' : 0, 'black' : 0}
+                        'red' : 0}
 
     assert expected_result == p.white_unloading_policy(state = S_k)

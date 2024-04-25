@@ -27,4 +27,4 @@ def test_do_nothing(seed):
 
     # assert
     assert decision == {'white' : 0, 'green' : 0, 'yellow' : 0, \
-                        'red' : 0, 'black' : 0}
+                        'red' : 0}

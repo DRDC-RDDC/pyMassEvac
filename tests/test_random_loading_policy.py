@@ -42,8 +42,7 @@ def test_random_loading_policy_1(seed):
     }
 
     expected_result = {'white' : 5, 'green' : 5, 'yellow' : 0, \
-                        'red' : 0, 'black' : 0
-    }
+                        'red' : 0}
 
     assert expected_result == p.random_loading_policy(state = S_k, \
                                                       params = params)
@@ -74,8 +73,7 @@ def test_random_loading_policy_2(seed):
     }
 
     expected_result = {'white' : 5, 'green' : 5, 'yellow' : 0, \
-                        'red' : 0, 'black' : 0
-    }
+                        'red' : 0}
 
     assert expected_result == p.random_loading_policy(state = S_k, \
                                                       params = params)    
@@ -106,8 +104,7 @@ def test_random_loading_policy_3(seed):
     }
 
     expected_result = {'white' : 0, 'green' : 0, 'yellow' : 0, \
-                        'red' : 0, 'black' : 0
-    }
+                        'red' : 0}
 
     assert expected_result == p.random_loading_policy(state = S_k, \
                                                       params = params)

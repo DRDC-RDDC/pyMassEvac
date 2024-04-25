@@ -40,8 +40,7 @@ def test_critical_first_loading_policy_1(seed):
              }
 
     # Set the expected return value
-    expected_value = {'white' : 0, 'green' : 1, 'yellow' : 0, 'red' : 3, \
-                      'black' : 0}
+    expected_value = {'white' : 0, 'green' : 1, 'yellow' : 0, 'red' : 3}
 
     decision = p.critical_first_loading_policy(S_k, params)
 
@@ -73,8 +72,7 @@ def test_critical_first_loading_policy_2(seed):
              }
 
     # Set the expected return value
-    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                      'black' : 0}
+    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
 
     decision = p.critical_first_loading_policy(S_k, params)
 
@@ -106,8 +104,7 @@ def test_critical_first_loading_policy_3(seed):
              }
     
     # Set the expected return value
-    expected_value = {'white' : 0, 'green' : 2, 'yellow' : 1, 'red' : 5, \
-                      'black' : 0}
+    expected_value = {'white' : 0, 'green' : 2, 'yellow' : 1, 'red' : 5}
     
     decision = p.critical_first_loading_policy(S_k, params)
 
@@ -138,8 +135,7 @@ def test_critical_first_loading_policy_4(seed):
              }
 
     # Set the expected return value
-    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                      'black' : 0}
+    expected_value = {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
 
     decision = p.critical_first_loading_policy(S_k, params)
 

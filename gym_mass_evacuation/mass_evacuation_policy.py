@@ -84,8 +84,7 @@ class MassEvacuationPolicy:
         decision = {'white': 0,
                     'green': 0, 
                     'yellow': 0, 
-                    'red': 0, 
-                    'black': 0}        
+                    'red' : 0}        
 
         return decision
 
@@ -123,7 +122,7 @@ class MassEvacuationPolicy:
         """
 
         # define the default decision
-        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
+        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
 
         if state['e_k'] != 3:
             # Extract the policy parameters
@@ -231,7 +230,7 @@ class MassEvacuationPolicy:
         """
 
         # define the default decision
-        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
+        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
 
         if state['e_k'] != 3:
             # Extract the policy parameters
@@ -336,7 +335,7 @@ class MassEvacuationPolicy:
         """
 
         # define the default decision
-        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
+        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
 
         if state['e_k'] != 3:
 
@@ -441,7 +440,7 @@ class MassEvacuationPolicy:
         total_capacity = params['total_capacity']
         individual_capacity = params['individual_capacity']
 
-        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
+        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
 
         # check the max number of individuals that are available to be loaded
         num_loaded = 0
@@ -471,7 +470,7 @@ class MassEvacuationPolicy:
             # people remaining to select
             l = list()
             for k in decision.keys():
-                if (k != 'black') and (state['rho_e_k'][k] - decision[k]) > 0:
+                if (state['rho_e_k'][k] - decision[k]) > 0:
                     l.append(k)
 
             if len(l) > 0:
@@ -522,7 +521,7 @@ class MassEvacuationPolicy:
         num_to_unload = params['numToUnload']
 
         # Initialize the decision
-        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
+        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
 
         # Determine how many individuals are currently onboard the ship
         num_on_ship = sum(state['rho_s_k'].values())
@@ -542,7 +541,7 @@ class MassEvacuationPolicy:
             # ship
             l = list()
             for k in decision.keys():
-                if (k != 'black') and (state['rho_s_k'][k] - decision[k]) > 0:
+                if (state['rho_s_k'][k] - decision[k]) > 0:
                     l.append(k)
 
             # Second, randomly select one of those individuals
@@ -580,7 +579,7 @@ class MassEvacuationPolicy:
         """
 
         # Initialize the decision
-        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0, 'black': 0}
+        decision = {'white': 0, 'green': 0, 'yellow': 0, 'red': 0}
 
         decision['white'] = state['rho_s_k']['white']
 

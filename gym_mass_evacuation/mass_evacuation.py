@@ -55,7 +55,6 @@ import pandas as pd
 
 from gym_mass_evacuation.mutable_priority_queue import MutablePriorityQueue
 
-
 class MassEvacuation(gym.Env):
 
     """A gymnasium environment of a multi-domain mass evacuation scenario.
@@ -87,10 +86,7 @@ class MassEvacuation(gym.Env):
         Parameters
         ----------
         initial_state : dict
-            Initial state S_0 of the environment. By default, it is set to
-            rempel_2024_initial_state that was used in Rempel (2024) with
-            a helicopter arriving at 48 hours and a ship arriving zero hours
-            after the individual arrive at the evacuation location.
+            Initial state S_0 of the environment. See Table 2 in Rempel (2024)
         seed : int, optional
             Random seed, by default None
         default_rng : bool, optional
@@ -157,7 +153,7 @@ class MassEvacuation(gym.Env):
                         sum(self.initial_state['rho_e_k'].values()), \
                         shape = (1,4), dtype = np.intc),
                     'rho_s_k' : gym.spaces.Box(0, \
-                        sum(self.initial_state['rho_e_k'].values()), \
+                        sum(self.initial_state['rho_s_k'].values()), \
                         shape = (1,4), dtype = np.intc)
                 }
             )
@@ -188,7 +184,7 @@ class MassEvacuation(gym.Env):
             # times for all individuals that are at the evacuation site or 
             # onboard the ship. Note that this information is not part of the 
             # observation, but is part of the enivronment.
-            self.exog_med_transitions_evac = pd.DataFrame(columns = 
+            self.exog_med_transitions_evac = pd.DataFrame(columns = \
                                                         ['arrival_time',
                                                         'category',
                                                         'white',
@@ -265,15 +261,12 @@ class MassEvacuation(gym.Env):
             # check if action is does not violate the total capacity
             # constraint of the helicopter - see equation (2) and (3)
 
-            print(list(action['x_hl_k'].values()))
-            print(list(self.state['rho_e_k'].values())[0:4])
-
             equation_2 = np.dot(list(action['x_hl_k'].values()), \
                 list(self.initial_state['delta_h'].values())) <= \
                 self.initial_state['c_h']
 
             equation_3 = np.all(list(action['x_hl_k'].values()) <= \
-                list(self.state['rho_e_k'].values())[0:4])
+                list(self.state['rho_e_k'].values()))
 
             if np.all([equation_2, equation_3]):
                 reward = sum(list(action['x_hl_k'].values()))
@@ -292,7 +285,7 @@ class MassEvacuation(gym.Env):
             of individuals in each triage category at the evacuation site;
             and `rho_s_k`, the number of individuals in each triage category
             onboard the ship. Both `rho_e_k` and `rho_s_k` are dicts with keys:
-            `white`, `green`, `yellow`, `red`, and `black`.
+            `white`, `green`, `yellow`, and `red`.
         """
 
         return self.state
@@ -332,7 +325,7 @@ class MassEvacuation(gym.Env):
             category at the evacuation site; and `rho_s_k`, the number of 
             individuals in each triage category onboard the ship. Both 
             `rho_e_k` and `rho_s_k` are dicts with keys: `white`, `green`, 
-            `yellow`, `red`, and `black`.
+            `yellow`, and `red`.
         info : None
             Required by gymnasium, but not used.
         """
@@ -467,19 +460,19 @@ class MassEvacuation(gym.Env):
             self.initial_state['c_h']
 
         equation_3 = np.all(list(action['x_hl_k'].values()) <= \
-            list(self.state['rho_e_k'].values())[0:4])
+            list(self.state['rho_e_k'].values()))
 
         equation_4 = np.all(list(action['x_sl_k'].values()) <= \
-            list(self.state['rho_e_k'].values())[0:4])
+            list(self.state['rho_e_k'].values()))
 
         equation_5 = np.dot(list(action['x_sl_k'].values()), \
                         list(self.initial_state['delta_s'].values())) <= \
                         self.initial_state['c_s'] - \
-                        np.dot(list(self.state['rho_s_k'].values())[0:4], \
+                        np.dot(list(self.state['rho_s_k'].values()), \
                         list(self.initial_state['delta_s'].values()))
 
         equation_6 = np.all(list(action['x_su_k'].values()) <= \
-            list(self.initial_state['rho_s_k'].values())[0:4])
+            list(self.state['rho_s_k'].values()))
 
         if not np.all([equation_2, equation_3, equation_4, equation_5, \
                    equation_6]):
@@ -501,7 +494,7 @@ class MassEvacuation(gym.Env):
         # compute the contribution function - see equation (8).
         reward = self._compute_reward(action)
 
-            # Get the exogenous information
+        # Get the exogenous information
         W_k_plus_one = self._exog_info_fn(action)
 
         # Execute the transition function - see Section 4.1.3, 
@@ -748,9 +741,9 @@ class MassEvacuation(gym.Env):
         # number of individuals in each triage category at the evacuation site
         # and onboard the ship respectively
         delta_hat_e_k = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
         delta_hat_s_k = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
 
         # create tuples for the number of individuals entering and leaving
         # each medical category
@@ -766,7 +759,8 @@ class MassEvacuation(gym.Env):
             for index, row in self.exog_med_transitions_evac.iterrows():
 
                 if row['category'] != 'black':
-                    current_med_category = row['category']
+                    # 24 April 2024 - remove following line if all tests pass
+                    # current_med_category = row['category']
 
                     final_med_category = ''
                     for (initial, final) in valid_transitions_evac:
@@ -853,22 +847,22 @@ class MassEvacuation(gym.Env):
             in each medical condition at the evacuation site and onboard the
             ship.
         """
-        
+
         # define delta_hat_e_k and delta_hat_s_k, which are the change in the
         # number of individuals in each triage category at the evacuation site
         # and onboard the ship respectively
         delta_hat_e_k = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
         delta_hat_s_k = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0, 'black': 0}
+                         'yellow': 0, 'red': 0}
         
         # create data frames for the number of individuals entering and leaving
         # each medical category
-        valid_transitions_evac = [('white', 'green'), ('green', 'yellow'), \
-                                  ('yellow', 'red'), ('red', 'black')]
+        # valid_transitions_evac = [('white', 'green'), ('green', 'yellow'), \
+        #                          ('yellow', 'red'), ('red', 'black')]
 
-        valid_transitions_ship = [('red', 'yellow'), ('yellow', 'green'), \
-                                  ('green', 'white')]
+        # valid_transitions_ship = [('red', 'yellow'), ('yellow', 'green'), \
+        #                          ('green', 'white')]
 
         # self.state.e_k = 0: all individuals have arrived at evacuation site
         # tau_hat_k is the inter-arrival time to the next event, so the decay

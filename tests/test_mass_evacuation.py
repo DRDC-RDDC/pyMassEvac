@@ -4,6 +4,7 @@ import pandas as pd
 import copy
 
 from gym_mass_evacuation import mass_evacuation
+from gym_mass_evacuation import mass_evacuation_policy
 
 @pytest.fixture
 def initial_state():
@@ -29,10 +30,10 @@ def initial_state():
             'eta_su' : 1,
             'tau_k' : 0,
             'e_k' : 0,
-            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
-            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0},
+            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5},
+            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
             'initial_helo_arrival' : [48],
-            'initial_ship_arrival' : [16]
+            'initial_ship_arrival' : [0]
         }
 
 @pytest.fixture
@@ -83,8 +84,10 @@ def test_init(initial_state, seed):
                                ignore_index = True)
 
     # Set the expected shape of the exogenous information data frames
-    expected_exog_evac_shape = (sum(initial_state['rho_e_k'].values()), 7)
+    expected_exog_evac_shape = (sum(list(initial_state['rho_e_k'].values())), 6)
     expected_exog_ship_shape = (0, 7)
+
+    print(env.exog_med_transitions_evac.head())
 
     assert env.initial_state == initial_state
     assert env.state == expected_state
@@ -152,8 +155,8 @@ def test_observation(initial_state, seed):
     env.state = {
             'tau_k' : 0,
             'e_k' : 0,
-            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
-            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0}
+            'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5},
+            'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
 
     expected_result = env.state
@@ -369,7 +372,7 @@ def test_add_individuals_1(initial_state, seed):
     # Set the decision. Note that at present this method takes single dict
     # as the decision, not a dict with the three decisions for x_hl_k,
     # x_sl_k, and x_su_k. Thus, this decision reflects x_sl_k.
-    decision = {'white' : 0, 'green' : 5, 'yellow' : 5, 'red' : 0, 'black' : 0}
+    decision = {'white' : 0, 'green' : 5, 'yellow' : 5, 'red' : 0}
 
     # Compute the expected return value - the addition of rows to the 
     # exogenous medical transition data frame
@@ -415,7 +418,7 @@ def test_add_individuals_2(initial_state, seed):
     # Set the decision. Note that at present this method takes single dict
     # as the decision, not a dict with the three decisions for x_hl_k,
     # x_sl_k, and x_su_k. Thus, this decision reflects x_sl_k.
-    decision = {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0}
+    decision = {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0}
 
     # Compute the expected return value - the addition of rows to the 
     # exogenous medical transition data frame
@@ -451,7 +454,7 @@ def test_remove_individuals_1(initial_state, seed):
     # Set the decision. Note that at present this method takes single dict
     # as the decision, not a dict with the three decisions for x_hl_k,
     # x_sl_k, and x_su_k. Thus, this decision reflects x_sl_k.
-    decision = {'white' : 0, 'green' : 5, 'yellow' : 5, 'red' : 0, 'black' : 0}
+    decision = {'white' : 0, 'green' : 5, 'yellow' : 5, 'red' : 0}
 
     # Compute the expected return value - the addition of rows to the 
     # exogenous medical transition data frame
@@ -488,12 +491,12 @@ def test_remove_individuals_2(initial_state, seed):
     # of env provides a scenario where all individuals are at the evacuation
     # site. 
     env._add_individuals({'white' : 20, 'green' : 10, 'yellow' : 5, \
-                           'red' : 5, 'black' : 0}, 'ship')
+                           'red' : 5}, 'ship')
 
     # Set the decision. Note that at present this method takes single dict
     # as the decision, not a dict with the three decisions for x_hl_k,
     # x_sl_k, and x_su_k. Thus, this decision reflects x_sl_k.
-    decision = {'white' : 0, 'green' : 5, 'yellow' : 5, 'red' : 0, 'black' : 0}
+    decision = {'white' : 0, 'green' : 5, 'yellow' : 5, 'red' : 0}
 
     # Compute the expected return value - the addition of rows to the 
     # exogenous medical transition data frame
@@ -544,8 +547,7 @@ def test_update_medical_condition_1(initial_state, seed):
                                               pd.DataFrame(individual, index = [0])],
                                               ignore_index = True)
     
-    expected_result = {'white' : 0, 'green' : 0, 'yellow' : 1, 'red' : 0, \
-                       'black' : 0}
+    expected_result = {'white' : 0, 'green' : 0, 'yellow' : 1, 'red' : 0}
     
     delta_hat_e_k = env._update_medical_condition(tau_hat_k, location)
 
@@ -591,8 +593,7 @@ def test_update_medical_condition_2(initial_state, seed):
                                               pd.DataFrame(individual, index = [0])],
                                               ignore_index = True)
     
-    expected_result = {'white' : 1, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                       'black' : 0}
+    expected_result = {'white' : 1, 'green' : 0, 'yellow' : 0, 'red' : 0}
     
     delta_hat_s_k = env._update_medical_condition(tau_hat_k, location)
 
@@ -646,11 +647,9 @@ def test_compute_delta_hat_k_1(initial_state, seed):
                                               ignore_index = True)
 
     expected_result = {'delta_hat_e_k' : {'white' : 0, 'green' : 1, \
-                                          'yellow' : 0, 'red' : 0, \
-                                            'black' : 0}, \
+                                          'yellow' : 0, 'red' : 0}, \
                         'delta_hat_s_k' : {'white' : 0, 'green' : 0, \
-                                           'yellow' : 0, 'red' : 0, \
-                                            'black' : 0}
+                                           'yellow' : 0, 'red' : 0}
     }
 
     result = env._compute_delta_hat_k(tau_hat_k, decision)
@@ -707,11 +706,9 @@ def test_compute_delta_hat_k_2(initial_state, seed):
                                                 ignore_index = True)
 
     expected_result = {'delta_hat_e_k' : {'white' : 0, 'green' : 0, \
-                                          'yellow' : 2, 'red' : 0, \
-                                            'black' : 0}, \
+                                          'yellow' : 2, 'red' : 0}, \
                         'delta_hat_s_k' : {'white' : 0, 'green' : 0, \
-                                           'yellow' : 0, 'red' : 0, \
-                                            'black' : 0}
+                                           'yellow' : 0, 'red' : 0}
     }
 
     result = env._compute_delta_hat_k(tau_hat_k, decision)
@@ -777,8 +774,7 @@ def test_compute_delta_hat_k_3(initial_state, seed):
     # have zero individuals.
 
     expected_result = {'white' : 0, 'green' : 0, \
-                        'yellow' : 2, 'red' : 0, \
-                        'black' : 0}
+                        'yellow' : 2, 'red' : 0}
     
     result = env._compute_delta_hat_k(tau_hat_k, decision)
 
@@ -845,8 +841,7 @@ def test_compute_delta_hat_k_4(initial_state, seed):
 
 
     expected_result = {'white' : 22, 'green' : 0, \
-                        'yellow' : 0, 'red' : 0, \
-                        'black' : 0}
+                        'yellow' : 0, 'red' : 0}
     
     result = env._compute_delta_hat_k(tau_hat_k, decision)
 
@@ -886,16 +881,16 @@ def test_transition_fn(initial_state, seed):
     exog_info = {'tau_hat_k' : 16, \
                  'e_hat_k' : 2, \
                  'delta_hat_e_k' : {'white' : 0, 'green' : 5, 'yellow' : 5, \
-                              'red' : 0, 'black' : 15}, \
+                              'red' : 0}, \
                  'delta_hat_s_k' : {'white' : 15, 'green' : 5, 'yellow' : 5, \
-                             'red' : 0, 'black' : 0}
+                             'red' : 0}
     }
 
     expected_result = {'tau_k' : 40, 'e_k' : 2, \
                  'rho_e_k' : {'white' : 0, 'green' : 5, 'yellow' : 5, \
-                              'red' : 0, 'black' : 15}, \
+                              'red' : 0}, \
                 'rho_s_k' : {'white' : 15, 'green' : 5, 'yellow' : 5, \
-                             'red' : 0, 'black' : 0}
+                             'red' : 0}
     }
 
     assert expected_result == env._transition_fn(decision, exog_info)
@@ -960,9 +955,9 @@ def test_exog_info_fn_1(initial_state, seed):
     # and delta_hat_s_k being computed. 
 
     expected_delta_hat_e_k = {'white' : 0, 'green' : 2, 'yellow' : 0, \
-                              'red' : 0, 'black' : 0}
+                              'red' : 0}
     expected_delta_hat_s_k = {'white' : 0, 'green' : 0, 'yellow' : 0, \
-                              'red' : 0, 'black' : 0}
+                              'red' : 0}
     
     result = env._exog_info_fn(decision)
 
@@ -1031,9 +1026,9 @@ def test_exog_info_fn_2(initial_state, seed):
     # and delta_hat_s_k being computed. 
 
     expected_delta_hat_e_k = {'white' : 0, 'green' : 2, 'yellow' : 0, \
-                              'red' : 0, 'black' : 0}
+                              'red' : 0}
     expected_delta_hat_s_k = {'white' : 0, 'green' : 0, 'yellow' : 0, \
-                              'red' : 0, 'black' : 0}
+                              'red' : 0}
     
     result = env._exog_info_fn(decision)
 
@@ -1102,9 +1097,9 @@ def test_exog_info_fn_3(initial_state, seed):
     # and delta_hat_s_k being computed. 
 
     expected_delta_hat_e_k = {'white' : 0, 'green' : 2, 'yellow' : 0, \
-                              'red' : 0, 'black' : 0}
+                              'red' : 0}
     expected_delta_hat_s_k = {'white' : 0, 'green' : 0, 'yellow' : 0, \
-                              'red' : 0, 'black' : 0}
+                              'red' : 0}
     
     result = env._exog_info_fn(decision)
 
@@ -1137,10 +1132,8 @@ def test_step_1(initial_state, seed):
 
     # Set the state S_k
     env.state = {'tau_k' : 0, 'e_k' : 1, \
-        'rho_e_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}, \
-        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}
+        'rho_e_k' : {'white' : 10, 'green' : 0, 'yellow' : 0, 'red' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
 
     # Reset the state of the env such that there are 10 individuals at the 
@@ -1172,10 +1165,8 @@ def test_step_1(initial_state, seed):
 
     # Set the state variable S_k for the test
     expected_state = {'tau_k' : 3, 'e_k' : 1, \
-        'rho_e_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}, \
-        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}
+        'rho_e_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0,}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
 
     # Call the step function
@@ -1213,10 +1204,8 @@ def test_step_2(initial_state, seed):
 
     # Set the state S_k
     env.state = {'tau_k' : 0, 'e_k' : 1, \
-        'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}, \
-        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}
+        'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
 
     # Reset the state of the env such that there are 10 individuals at the 
@@ -1248,10 +1237,8 @@ def test_step_2(initial_state, seed):
 
     # Set the state variable S_k for the test
     expected_state = {'tau_k' : 3, 'e_k' : 1, \
-        'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}, \
-        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, \
-                     'black' : 0}
+        'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0}, \
+        'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
 
     # Call the step function
