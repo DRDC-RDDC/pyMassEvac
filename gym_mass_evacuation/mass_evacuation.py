@@ -169,7 +169,7 @@ class MassEvacuation(gym.Env):
                         self.initial_state['c_h'], \
                         shape = (1,4), \
                         dtype = np.intc),
-                    'x_hs_k' : gym.spaces.Box(0, \
+                    'x_sl_k' : gym.spaces.Box(0, \
                         self.initial_state['c_s'], \
                         shape = (1,4), \
                         dtype = np.intc),
@@ -452,27 +452,36 @@ class MassEvacuation(gym.Env):
         truncated = False
         info = {}
 
+        equation_2 = True
+        equation_3 = True
+        equation_4 = True
+        equation_5 = True
+        equation_6 = True
+
         # check the conditions on the action to determine if it is legal
         # given the current state - see equations (2) through (6) in
         # Rempel (2024)
-        equation_2 = np.dot(list(action['x_hl_k'].values()), \
-            list(self.initial_state['delta_h'].values())) <= \
-            self.initial_state['c_h']
+        if self.state['e_k'] == 1:
+            equation_2 = np.dot(list(action['x_hl_k'].values()), \
+                list(self.initial_state['delta_h'].values())) <= \
+                self.initial_state['c_h']
 
-        equation_3 = np.all(list(action['x_hl_k'].values()) <= \
-            list(self.state['rho_e_k'].values()))
+            equation_3 = np.all(list(action['x_hl_k'].values()) <= \
+                list(self.state['rho_e_k'].values()))
 
-        equation_4 = np.all(list(action['x_sl_k'].values()) <= \
-            list(self.state['rho_e_k'].values()))
+        if self.state['e_k'] == 2:
+            equation_4 = np.all(list(action['x_sl_k'].values()) <= \
+                list(self.state['rho_e_k'].values()))
 
-        equation_5 = np.dot(list(action['x_sl_k'].values()), \
+            equation_5 = np.dot(list(action['x_sl_k'].values()), \
                         list(self.initial_state['delta_s'].values())) <= \
                         self.initial_state['c_s'] - \
                         np.dot(list(self.state['rho_s_k'].values()), \
                         list(self.initial_state['delta_s'].values()))
 
-        equation_6 = np.all(list(action['x_su_k'].values()) <= \
-            list(self.state['rho_s_k'].values()))
+        if self.state['e_k'] == 3:
+            equation_6 = np.all(list(action['x_su_k'].values()) <= \
+                list(self.state['rho_s_k'].values()))
 
         if not np.all([equation_2, equation_3, equation_4, equation_5, \
                    equation_6]):
