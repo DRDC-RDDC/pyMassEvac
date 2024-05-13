@@ -1,16 +1,15 @@
 # import packages
 
-import gymnasium as gym
+# import gymnasium as gym
 import numpy as np
 import pandas as pd
 import copy
 import math
 import random
 
-from MutablePriorityQueue import MutablePriorityQueue
-from MassEvacuation import MassEvacuation
-from MassEvacuationPolicy import MassEvacuationPolicy
-
+# import local copies for testing purposes
+from mass_evacuation import MassEvacuation
+from mass_evacuation_policy import MassEvacuationPolicy
 
 # Set the seed that was used in Rempel (2024)
 rempel_2024_seed = 20180529
@@ -24,21 +23,21 @@ rempel_2024_initial_state = {
             'delta_h' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
             'delta_s' : {'white' : 1, 'green' : 1, 'yellow' : 3, 'red' : 3},
             'eta_h' : 3,
-            'eta_sl' : 24,
-            'eta_su' : 1,
+            'eta_sl' : 1,
+            'eta_su' : 24,
             'tau_k' : 0,
             'e_k' : 0,
             'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
             'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0},
             'initial_helo_arrival' : [48],
-            'initial_ship_arrival' : [0]
+            'initial_ship_arrival' : [48]
         }
 
 env = MassEvacuation(initial_state = rempel_2024_initial_state, \
                      seed = rempel_2024_seed,
                      default_rng = False)
 
-bm = MassEvacuationPolicy()
+bm = MassEvacuationPolicy(default_rng = False)
 
 # define the default action
 action = {'x_hl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
@@ -46,13 +45,15 @@ action = {'x_hl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
           'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
          }
 
-numTrials = 30
-objectiveValue = np.zeros(numTrials)
+num_trials = 1
+objective_value = np.zeros(num_trials)
 
-for t in range(numTrials):
+for t in range(num_trials):
     done = False
 
-    print('Trial : ', t, ' of', numTrials)
+    # system_time = 0
+
+    print('Trial : ', t, ' of', num_trials)
     while not done:
 
         # The action space in this is defined by three types of actions that can be taken that depend on the event that is occuring.
@@ -67,17 +68,23 @@ for t in range(numTrials):
                   'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
                   }
 
+        # # FOR TESTING ONLY - state before action is taken
+        # print('Sysem time -->', system_time)
+        # print('Current event queue -->')
+        # print(env.queue.queue)
+        # print('State -->', env.state)
+
         if (env.state['e_k']) == 1:
 
             # load the helicopter
-            action['x_hl_k'] = bm.greenFirstLoadingPolicy(env.state, {
+            action['x_hl_k'] = bm.green_first_loading_policy(env.state, {
                 'total_capacity' : env.initial_state['c_h'],
                 'individual_capacity' : env.initial_state['delta_h']
             })
         elif (env.state['e_k'] == 2):
 
             # load the ship
-            action['x_sl_k'] = bm.greenFirstLoadingPolicy(env.state, {
+            action['x_sl_k'] = bm.green_first_loading_policy(env.state, {
                 'total_capacity' : env.initial_state['c_s'],
                 'individual_capacity' : env.initial_state['delta_s']
             })
@@ -89,17 +96,46 @@ for t in range(numTrials):
         observation, reward, terminated, truncated, info = env.step(action)
         env.state = observation
 
-        objectiveValue[t] += reward
+        # system_time += env.state['tau_k']
+
+        objective_value[t] += reward
         done = terminated or truncated
 
-    env.reset(single_scenario = True)
+    options = {}
+    options['single_scenario'] = True
+    env.reset(options)
 
-print(objectiveValue)
-print('Expected number of lives saved = ', sum(objectiveValue) / numTrials)
+print(objective_value)
+print('Expected number of lives saved = ', objective_value.mean())
 
+##### ----- testing lerning algorithms -----
 
+env = MassEvacuation(initial_state = rempel_2024_initial_state, \
+                     seed = rempel_2024_seed,
+                     default_rng = False)
 
+print(env.state)
 
+# sample an action
+action_sample = env.action_space.sample()
 
+# convert the sampled action into an action that can be used by the environment
+action = {'x_hl_k' : {'white' : action_sample['x_hl_k'][0,0], 
+                      'green' : action_sample['x_hl_k'][0,1], 
+                      'yellow' : action_sample['x_hl_k'][0,2], 
+                      'red' : action_sample['x_hl_k'][0,3]}, \
+          'x_sl_k' : {'white' : action_sample['x_sl_k'][0,0], 
+                      'green' : action_sample['x_sl_k'][0,1], 
+                      'yellow' : action_sample['x_sl_k'][0,2],
+                      'red' : action_sample['x_sl_k'][0,3]},
+          'x_su_k' : {'white' : action_sample['x_su_k'][0,0], 
+                      'green' : action_sample['x_su_k'][0,1], 
+                      'yellow' : action_sample['x_su_k'][0,2], 
+                      'red' : action_sample['x_su_k'][0,3]}
+                  }
 
+print(action)
 
+# submit the action to the environment and check what is returned
+observation, reward, terminated, truncated, info = env.step(action)
+print(observation)

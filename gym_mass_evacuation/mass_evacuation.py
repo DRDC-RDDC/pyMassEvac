@@ -290,7 +290,7 @@ class MassEvacuation(gym.Env):
 
         return self.state
 
-    def reset(self, seed = None, options = None):
+    def reset(self, options, seed = None):
         """Reset the environment.
 
         Reset the environment to its initial state. The reset can occur in 
@@ -356,7 +356,7 @@ class MassEvacuation(gym.Env):
 
         # If a single sceanrio is selected, reset the individual's medical
         # transition times to those generated in the __init__ method.
-        if single_scenario is True:
+        if single_scenario:
 
             self.exog_med_transitions_evac = copy.deepcopy(self.initial_med_transitions_evac)
             self.exog_med_transitions_ship = copy.deepcopy(self.initial_med_transitions_ship)

@@ -41,7 +41,7 @@ class MassEvacuationPolicy:
         the decision policies; defualt `None`.
     """
 
-    def __init__(self, seed = None):
+    def __init__(self, default_rng = True, seed = None):
         """Initialize a decision policy object.
 
         The policy class contains the set of policy function
@@ -54,10 +54,16 @@ class MassEvacuationPolicy:
         In addition, a do nothing policy is implemented.
         """
 
-        if seed is not None:
-            self.rng = np.random.default_rng(seed)
+        if default_rng:
+            if seed is not None:
+                self.rng = np.random.default_rng(seed)
+            else:
+                self.rng = np.random.default_rng()
         else:
-            self.rng = np.random.default_rng()
+            if seed is not None:
+                self.rng = np.random.RandomState(seed)
+            else:
+                self.rng = np.random.RandomState()
 
         return
 
