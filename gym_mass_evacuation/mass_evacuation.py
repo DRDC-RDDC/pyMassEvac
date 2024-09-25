@@ -10,12 +10,14 @@ objective is to transport as many individuals from the evacuation site as
 possible.
 
 Within this scenario there are three types of decisions that are to be made: 
+
 (i) which individuals waiting at the evacuation site are to be loaded onto a 
-helicopter for transportation to a forward operating location; (ii) which 
-individuals are to be loaded from the evacuation site onto a ship in order to 
-receive medical attention; and (iii) which individuals are to be unloaded from 
-the ship and return to the evacuation site so that others may board the ship 
-and receive medical attention. 
+helicopter for transportation to a forward operating location; 
+(ii) which individuals are to be loaded from the evacuation site onto a ship in 
+order to receive medical attention; and 
+(iii) which individuals are to be unloaded from the ship and return to the 
+evacuation site so that others may board the ship and receive medical 
+attention. 
 
 Between these decisions being made, the individuals' medical conditions
 change due to a variety of factors. While at the evacuation site, an 
@@ -59,7 +61,7 @@ class MassEvacuation(gym.Env):
 
     """A gymnasium environment of a multi-domain mass evacuation scenario.
     """
-    
+
     def __init__(self, initial_state, \
                  seed = None, default_rng = True):
         """Returns a new MassEvacuation gymnasium environment object.
@@ -86,7 +88,10 @@ class MassEvacuation(gym.Env):
         Parameters
         ----------
         initial_state : dict
-            Initial state S_0 of the environment. See Table 2 in Rempel (2024)
+            Initial state S_0 of the environment. See Table 2 and equation (1)
+            in Rempel (2024). Two additional initial parameters are added: 
+            `initial_helo_arrival' and `initial_ship_arrival' for a cleaner
+            to better follow Powell's modelling framework.
         seed : int, optional
             Random seed, by default None
         default_rng : bool, optional
@@ -112,7 +117,7 @@ class MassEvacuation(gym.Env):
             # Define the initial state S_0 - see Table 5 in Rempel (2024).
             self.initial_state = initial_state
             
-            # Define the random number generator. 
+            # Define the random number generator.
             if default_rng is True:
                 self.rng = np.random.default_rng(seed)
             else:
@@ -461,6 +466,7 @@ class MassEvacuation(gym.Env):
         # check the conditions on the action to determine if it is legal
         # given the current state - see equations (2) through (6) in
         # Rempel (2024)
+
         if self.state['e_k'] == 1:
             equation_2 = np.dot(list(action['x_hl_k'].values()), \
                 list(self.initial_state['delta_h'].values())) <= \
@@ -484,7 +490,7 @@ class MassEvacuation(gym.Env):
                 list(self.state['rho_s_k'].values()))
 
         if not np.all([equation_2, equation_3, equation_4, equation_5, \
-                   equation_6]):
+                   equation_6]) or self.state['e_k'] == 0:
 
             # the action is invalid, and will be set to null - note this
             # is done such that when the environment is used in conjunction

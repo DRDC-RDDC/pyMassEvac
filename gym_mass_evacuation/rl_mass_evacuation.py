@@ -30,7 +30,7 @@ rempel_2024_initial_state = {
             'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
             'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0},
             'initial_helo_arrival' : [48],
-            'initial_ship_arrival' : [48]
+            'initial_ship_arrival' : [168]
         }
 
 env = MassEvacuation(initial_state = rempel_2024_initial_state, \
@@ -45,7 +45,7 @@ action = {'x_hl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
           'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
          }
 
-num_trials = 1
+num_trials = 30
 objective_value = np.zeros(num_trials)
 
 for t in range(num_trials):
