@@ -463,9 +463,17 @@ class MassEvacuation(gym.Env):
         equation_5 = True
         equation_6 = True
 
+        # action masking - if the set of relevant equations (from equation (2)
+        # through equation (6)) to the current state are not valid given the
+        # action, then the action will be masked (mask_action = True). If
+        # the relevant equations are valid, then the action will not be masked
+        # (mask_action = False).
+        mask_action = False
+
         # check the conditions on the action to determine if it is legal
         # given the current state - see equations (2) through (6) in
-        # Rempel (2024)
+        # Rempel (2024). This is a portion of how action masking is
+        # implemented in the step function.
 
         if self.state['e_k'] == 1:
             equation_2 = np.dot(list(action['x_hl_k'].values()), \
@@ -505,16 +513,23 @@ class MassEvacuation(gym.Env):
             action['x_su_k'] = {'white': 0, 'green': 0, \
                          'yellow': 0, 'red': 0}
 
+            # set mask_action to True
+            mask_action = True
 
         # compute the contribution function - see equation (8).
         reward = self._compute_reward(action)
 
         # Get the exogenous information
-        W_k_plus_one = self._exog_info_fn(action)
+        if mask_action == False:
+            
+            # The action is valid, so we will collect the
+            # exogenous information 
+            W_k_plus_one = self._exog_info_fn(action)
 
         # Execute the transition function - see Section 4.1.3, 
         # S_k_plus_one = S^m(S_k, x_k, W_k_plus_one)
-        next_state = self._transition_fn(action, W_k_plus_one)
+        if mask_action == False:
+            next_state = self._transition_fn(action, W_k_plus_one)
 
         # check if there are no individuals remaining at the evacuation site and onboard the ship
         if ((next_state['rho_e_k']['white'] + \

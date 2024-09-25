@@ -1236,7 +1236,7 @@ def test_step_2(initial_state, seed):
     expected_reward = 0
 
     # Set the state variable S_k for the test
-    expected_state = {'tau_k' : 3, 'e_k' : 1, \
+    expected_state = {'tau_k' : 0, 'e_k' : 1, \
         'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0}, \
         'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
