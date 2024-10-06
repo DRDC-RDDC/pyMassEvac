@@ -8,8 +8,8 @@ import math
 import random
 
 # import local copies for testing purposes
-from mass_evacuation import MassEvacuation
-from mass_evacuation_policy import MassEvacuationPolicy
+from gym_mass_evacuation.mass_evacuation import MassEvacuation
+from gym_mass_evacuation.mass_evacuation_policy import MassEvacuationPolicy
 
 # Set the seed that was used in Rempel (2024)
 rempel_2024_seed = 20180529
@@ -30,7 +30,7 @@ rempel_2024_initial_state = {
             'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 20, 'red' : 5, 'black' : 0},
             'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0, 'black' : 0},
             'initial_helo_arrival' : [48],
-            'initial_ship_arrival' : [168]
+            'initial_ship_arrival' : [0]
         }
 
 env = MassEvacuation(initial_state = rempel_2024_initial_state, \
@@ -93,13 +93,21 @@ for t in range(num_trials):
             # unload the ship
             action['x_su_k'] = bm.white_unloading_policy(env.state) 
 
+        # convert dict action to ndarray action
+        action = env.action_dict_to_ndarray(action)
+
         observation, reward, terminated, truncated, info = env.step(action)
+
+        observation = env.observation_ndarray_to_dict(observation)
         env.state = observation
 
         # system_time += env.state['tau_k']
 
         objective_value[t] += reward
         done = terminated or truncated
+
+        print(info)
+        print(env.state)
 
     options = {}
     options['single_scenario'] = True

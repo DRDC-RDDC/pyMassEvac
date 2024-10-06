@@ -10,6 +10,7 @@ dependencies:
   - numpy
   - matplotlib
   - gymnasium
+  - stable-baselines3
   - pytest
   - pytest-cov
   - tdqm

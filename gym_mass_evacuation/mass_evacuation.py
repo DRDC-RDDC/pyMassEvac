@@ -50,7 +50,6 @@ Jersey, 2022.
 
 import math
 import copy
-import random
 import gymnasium as gym
 import numpy as np
 import pandas as pd
@@ -150,40 +149,89 @@ class MassEvacuation(gym.Env):
             # Define the observation space - this is the state space of the 
             # environment. See the definition of the state variable
             # in equation (1).
-            self.observation_space = gym.spaces.Dict(
-                {
-                    'tau_k' : gym.spaces.Discrete(168),
-                    'e_k' : gym.spaces.Discrete(3),
-                    'rho_e_k' : gym.spaces.Box(0, \
-                        sum(self.initial_state['rho_e_k'].values()), \
-                        shape = (1,4), dtype = np.intc),
-                    'rho_s_k' : gym.spaces.Box(0, \
-                        sum(self.initial_state['rho_s_k'].values()), \
-                        shape = (1,4), dtype = np.intc)
-                }
-            )
+            lower_limit = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            upper_limit = np.array([168 + 1,
+                                    3 + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1, 
+                                    sum(self.initial_state['rho_e_k'].values()) + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1,
+                                    sum(self.initial_state['rho_e_k'].values()) + 1
+            ])
+
+            # self.observation_space = gym.spaces.Dict(
+            #     {
+            #         'tau_k' : gym.spaces.Discrete(168),
+            #         'e_k' : gym.spaces.Discrete(3),
+            #         'rho_e_k' : gym.spaces.Box(0, \
+            #             sum(self.initial_state['rho_e_k'].values()), \
+            #             shape = (1,4), dtype = np.intc),
+            #         'rho_s_k' : gym.spaces.Box(0, \
+            #             sum(self.initial_state['rho_s_k'].values()), \
+            #             shape = (1,4), dtype = np.intc)
+            #     }
+            # )
 
             # Define the action space - this is the set of decisions that can 
             # be taken. See the definition in section 4.1.2. Note that is 
             # definition does not include the constraints on the decisions; 
             # those constraints (equations (2), (3), (5), and (6) would need to # be handled in the decision policies for loading a helicopter, 
             # loading the ship, and unloading the ship.
-            self.action_space = gym.spaces.Dict(
-                {
-                    'x_hl_k' : gym.spaces.Box(0, \
-                        self.initial_state['c_h'], \
-                        shape = (1,4), \
-                        dtype = np.intc),
-                    'x_sl_k' : gym.spaces.Box(0, \
-                        self.initial_state['c_s'], \
-                        shape = (1,4), \
-                        dtype = np.intc),
-                    'x_su_k' : gym.spaces.Box(0, \
-                        self.initial_state['c_s'], \
-                        shape = (1,4),
-                        dtype = np.intc)
-                }
-            )
+            # self.action_space = gym.spaces.Dict(
+            #     {
+            #         'x_hl_k' : gym.spaces.Box(0, \
+            #             self.initial_state['c_h'], \
+            #             shape = (1,4), \
+            #             dtype = np.intc),
+            #         'x_sl_k' : gym.spaces.Box(0, \
+            #             self.initial_state['c_s'], \
+            #             shape = (1,4), \
+            #             dtype = np.intc),
+            #         'x_su_k' : gym.spaces.Box(0, \
+            #             self.initial_state['c_s'], \
+            #             shape = (1,4),
+            #             dtype = np.intc)
+            #     }
+            # )
+
+            # TO-DO - define the complete unflattened action space
+
+            # Define an array of upper limits on actions - there are 12 actions
+            # in total, where the first four are 'x_hl_k', the second four are
+            # 'x_sl_k', and the last four are 'x_su_k'. 
+            lower_limit = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            upper_limit = np.array([math.floor(self.initial_state['c_h'] / 
+                                                 self.initial_state['delta_h']['white']) + 1,
+                                      math.floor(self.initial_state['c_h'] / 
+                                                 self.initial_state['delta_h']['green']) + 1,
+                                      math.floor(self.initial_state['c_h'] / 
+                                                 self.initial_state['delta_h']['yellow']) + 1,
+                                    math.floor(self.initial_state['c_h'] / 
+                                               self.initial_state['delta_h']['red']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                               self.initial_state['delta_s']['white']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                               self.initial_state['delta_s']['green']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                                self.initial_state['delta_s']['yellow']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                               self.initial_state['delta_s']['red']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                               self.initial_state['delta_s']['white']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                               self.initial_state['delta_s']['green']) + 1,
+                                    math.floor(self.initial_state['c_s'] /
+                                               self.initial_state['delta_s']['yellow']) + 1,
+                                    math.floor(self.initial_state['c_s'] / 
+                                               self.initial_state['delta_s']['red']) + 1
+            ])
+
+            self.action_space = gym.spaces.Box(low = lower_limit, 
+                                               high = upper_limit,
+                                               dtype = np.intc)
 
             # Create a data frame that stores the exogenous medical transition 
             # times for all individuals that are at the evacuation site or 
@@ -224,6 +272,80 @@ class MassEvacuation(gym.Env):
         else:
             raise KeyError(f'Keys "{required_keys}" does not exist')
 
+    def action_ndarray_to_dict(self, action):
+        """Convert the action space numpy array to a dict.
+
+        Parameters
+        ----------
+        action : ndarray
+            A numpy array that contains 12 elements that describe an
+            action. The elements are separated into three groups by
+            their action - `x_hl_k`, `x_sl_k`, and `x_su_k` - where
+            each group contains four elements.
+
+        Returns
+        -------
+        action_dict : dict
+            The action converted to a dictionary that contains three
+            key-value pairs: `x_hl_k`, `x_sl_k`, and `x_su_k`. The value
+            for each key is itself a dictionary that contains the selected
+            actions for the `white`, `green`, `yellow`, and `red` triage
+            categories.      
+        """
+
+        action_dict = {'x_hl_k' : {'white' : action[0],
+                                   'green' : action[1],
+                                   'yellow' : action[2],
+                                   'red' : action[3]},
+                        'x_sl_k' : {'white' : action[4],
+                                    'green' : action[5],
+                                    'yellow' : action[6],
+                                    'red' : action[7]},
+                        'x_su_k' : {'white' : action[8],
+                                    'green' : action[9],
+                                    'yellow' : action[10],
+                                    'red' : action[11]
+                                    }
+                        }
+
+
+        return action_dict
+    
+    def action_dict_to_ndarray(self, action):
+        """Convert the action space dict to a numpy array.
+
+        Parameters
+        ----------
+        action : dict
+            The action represented by a dictionary that contains three
+            key-value pairs: `x_hl_k`, `x_sl_k`, and `x_su_k`. The value
+            for each key is itself a dictionary that contains the selected
+            actions for the `white`, `green`, `yellow`, and `red` triage
+            categories.      
+
+        Returns
+        -------
+        action_ndarray : ndarray
+            A numpy array that contains 12 elements that describe an
+            action. The elements are separated into three groups by
+            their action - `x_hl_k`, `x_sl_k`, and `x_su_k` - where
+            each group contains four elements.
+        """
+
+        action_ndarray = np.array([action['x_hl_k']['white'],
+                                   action['x_hl_k']['green'],
+                                   action['x_hl_k']['yellow'],
+                                   action['x_hl_k']['red'],
+                                   action['x_sl_k']['white'],
+                                   action['x_sl_k']['green'],
+                                   action['x_sl_k']['yellow'],
+                                   action['x_sl_k']['red'],
+                                   action['x_su_k']['white'],
+                                   action['x_su_k']['green'],
+                                   action['x_su_k']['yellow'],
+                                   action['x_su_k']['red']])
+
+        return action_ndarray
 
     def _compute_reward(self, action):
         """Compute the contribution (or reward) for taking an action.
@@ -278,6 +400,23 @@ class MassEvacuation(gym.Env):
 
         return reward
 
+    def observation_ndarray_to_dict(self, observation):
+
+        observation = {'tau_k' : observation[0],
+                       'e_k' : observation[1],
+                       'rho_e_k' : {'white' : observation[2],
+                                    'green' : observation[3],
+                                    'yellow' : observation[4],
+                                    'red' : observation[5]
+                                    },
+                        'rho_s_k' : {'white' : observation[6],
+                                     'green' : observation[7],
+                                     'yellow' : observation[8],
+                                     'red' : observation[9]}
+                                    }
+
+        return observation
+
     def observation(self):
         """Get the current state S_k.
 
@@ -293,7 +432,20 @@ class MassEvacuation(gym.Env):
             `white`, `green`, `yellow`, and `red`.
         """
 
-        return self.state
+        state_ndarray = np.array([self.state['tau_k'],
+                                  self.state['e_k'],
+                                  self.state['rho_e_k']['white'],
+                                  self.state['rho_e_k']['green'],
+                                  self.state['rho_e_k']['yellow'],
+                                  self.state['rho_e_k']['red'],
+                                  self.state['rho_s_k']['white'],
+                                  self.state['rho_s_k']['green'],
+                                  self.state['rho_s_k']['yellow'],
+                                  self.state['rho_s_k']['red']
+                                  ]
+                                )
+
+        return state_ndarray
 
     def reset(self, options, seed = None):
         """Reset the environment.
@@ -383,7 +535,7 @@ class MassEvacuation(gym.Env):
             # Add the original number of individuals to the evacution site
             self._add_individuals(self.state['rho_e_k'], 'evac')
 
-        observation = self.state
+        observation = self.observation()
         info = {}
 
         return observation, info
@@ -451,6 +603,10 @@ class MassEvacuation(gym.Env):
         three decisions.
         """
 
+        # Convert action from ndarray to dict - this is done to make the code
+        # easier to read.
+        action = self.action_ndarray_to_dict(action)
+
         next_state = copy.deepcopy(self.state)
         reward = 0
         terminated = False
@@ -465,10 +621,8 @@ class MassEvacuation(gym.Env):
 
         # action masking - if the set of relevant equations (from equation (2)
         # through equation (6)) to the current state are not valid given the
-        # action, then the action will be masked (mask_action = True). If
-        # the relevant equations are valid, then the action will not be masked
-        # (mask_action = False).
-        mask_action = False
+        # action, then the action will be masked. If the relevant equations are 
+        # valid, then the action will not be masked.
 
         # check the conditions on the action to determine if it is legal
         # given the current state - see equations (2) through (6) in
@@ -497,39 +651,67 @@ class MassEvacuation(gym.Env):
             equation_6 = np.all(list(action['x_su_k'].values()) <= \
                 list(self.state['rho_s_k'].values()))
 
+        # If any of the equations are not true (not all), then the action
+        # is masked (i.e., the action is invalid and the environment does
+        # not step - exogenous information is not collected and the transtion
+        # function is not executed)
+
+        # or self.state['e_k'] == 0:
         if not np.all([equation_2, equation_3, equation_4, equation_5, \
-                   equation_6]) or self.state['e_k'] == 0:
+                   equation_6]):
 
-            # the action is invalid, and will be set to null - note this
-            # is done such that when the environment is used in conjunction
-            # with a learning algorithm, an invalid action will result in
-            # a negative situation occuring and no reward being provided
-            action['x_hl_k'] = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0}
-            
-            action['x_sl_k'] = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0}
+            # the action is invalid for the current state
 
-            action['x_su_k'] = {'white': 0, 'green': 0, \
-                         'yellow': 0, 'red': 0}
+            # set the reward to zero
+            reward = 0
 
-            # set mask_action to True
-            mask_action = True
+            info = {'action' : 'invalid'}
+        else:
 
-        # compute the contribution function - see equation (8).
-        reward = self._compute_reward(action)
+            # the action is valid
 
-        # Get the exogenous information
-        if mask_action == False:
-            
-            # The action is valid, so we will collect the
-            # exogenous information 
+            # compute the contribution function - see equation (8).
+            reward = self._compute_reward(action)
+
+            # get the exgoenous information W_{t + 1}
             W_k_plus_one = self._exog_info_fn(action)
 
-        # Execute the transition function - see Section 4.1.3, 
-        # S_k_plus_one = S^m(S_k, x_k, W_k_plus_one)
-        if mask_action == False:
+            # Execute the transition function - see Section 4.1.3, 
+            # S_k_plus_one = S^m(S_k, x_k, W_k_plus_one)
             next_state = self._transition_fn(action, W_k_plus_one)
+
+            info = {'action' : 'valid'}
+
+            # # the action is invalid, and will be set to null - note this
+            # # is done such that when the environment is used in conjunction
+            # # with a learning algorithm, an invalid action will result in
+            # # a negative situation occuring and no reward being provided
+            # action['x_hl_k'] = {'white': 0, 'green': 0, \
+            #              'yellow': 0, 'red': 0}
+            
+            # action['x_sl_k'] = {'white': 0, 'green': 0, \
+            #              'yellow': 0, 'red': 0}
+
+            # action['x_su_k'] = {'white': 0, 'green': 0, \
+            #              'yellow': 0, 'red': 0}
+
+            # # set mask_action to True
+            # mask_action = True
+
+        # # compute the contribution function - see equation (8).
+        # reward = self._compute_reward(action)
+
+        # # Get the exogenous information
+        # if mask_action is False:
+            
+        #     # The action is valid, so we will collect the
+        #     # exogenous information 
+        #     W_k_plus_one = self._exog_info_fn(action)
+
+        # # Execute the transition function - see Section 4.1.3, 
+        # # S_k_plus_one = S^m(S_k, x_k, W_k_plus_one)
+        # if mask_action is False:
+        #     next_state = self._transition_fn(action, W_k_plus_one)
 
         # check if there are no individuals remaining at the evacuation site and onboard the ship
         if ((next_state['rho_e_k']['white'] + \
@@ -541,6 +723,20 @@ class MassEvacuation(gym.Env):
                             next_state['rho_s_k']['yellow'] + \
                                 next_state['rho_s_k']['red']) == 0):
             terminated = True
+
+        # Convert the next_state as a dict to an ndarray
+        next_state = np.array([next_state['tau_k'],
+                                next_state['e_k'],
+                                next_state['rho_e_k']['white'],
+                                next_state['rho_e_k']['green'],
+                                next_state['rho_e_k']['yellow'],
+                                next_state['rho_e_k']['red'],
+                                next_state['rho_s_k']['white'],
+                                next_state['rho_s_k']['green'],
+                                next_state['rho_s_k']['yellow'],
+                                next_state['rho_s_k']['red']
+                                ]
+                            )
 
         return next_state, reward, terminated, truncated, info
 

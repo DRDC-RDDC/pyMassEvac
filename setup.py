@@ -36,6 +36,7 @@ setup(
         "numpy",
         "matplotlib",
         "gymnasium",
+        "stable-baselines3",
         "tdqm",
         "seaborn"
     ],
