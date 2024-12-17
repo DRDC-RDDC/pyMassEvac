@@ -150,54 +150,27 @@ class MassEvacuation(gym.Env):
             # environment. See the definition of the state variable
             # in equation (1).
             lower_limit = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-            upper_limit = np.array([168 + 1,
-                                    3 + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1, 
-                                    sum(self.initial_state['rho_e_k'].values()) + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1,
-                                    sum(self.initial_state['rho_e_k'].values()) + 1
+            upper_limit = np.array([168,
+                                    3,
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values()),
+                                    sum(self.initial_state['rho_e_k'].values())
             ])
 
-            # self.observation_space = gym.spaces.Dict(
-            #     {
-            #         'tau_k' : gym.spaces.Discrete(168),
-            #         'e_k' : gym.spaces.Discrete(3),
-            #         'rho_e_k' : gym.spaces.Box(0, \
-            #             sum(self.initial_state['rho_e_k'].values()), \
-            #             shape = (1,4), dtype = np.intc),
-            #         'rho_s_k' : gym.spaces.Box(0, \
-            #             sum(self.initial_state['rho_s_k'].values()), \
-            #             shape = (1,4), dtype = np.intc)
-            #     }
-            # )
+            self.observation_space = gym.spaces.Box(low = lower_limit, 
+                                               high = upper_limit,
+                                               dtype = np.int64)
 
             # Define the action space - this is the set of decisions that can 
             # be taken. See the definition in section 4.1.2. Note that is 
             # definition does not include the constraints on the decisions; 
             # those constraints (equations (2), (3), (5), and (6) would need to # be handled in the decision policies for loading a helicopter, 
             # loading the ship, and unloading the ship.
-            # self.action_space = gym.spaces.Dict(
-            #     {
-            #         'x_hl_k' : gym.spaces.Box(0, \
-            #             self.initial_state['c_h'], \
-            #             shape = (1,4), \
-            #             dtype = np.intc),
-            #         'x_sl_k' : gym.spaces.Box(0, \
-            #             self.initial_state['c_s'], \
-            #             shape = (1,4), \
-            #             dtype = np.intc),
-            #         'x_su_k' : gym.spaces.Box(0, \
-            #             self.initial_state['c_s'], \
-            #             shape = (1,4),
-            #             dtype = np.intc)
-            #     }
-            # )
-
-            # TO-DO - define the complete unflattened action space
 
             # Define an array of upper limits on actions - there are 12 actions
             # in total, where the first four are 'x_hl_k', the second four are
@@ -231,7 +204,7 @@ class MassEvacuation(gym.Env):
 
             self.action_space = gym.spaces.Box(low = lower_limit, 
                                                high = upper_limit,
-                                               dtype = np.intc)
+                                               dtype = np.int64)
 
             # Create a data frame that stores the exogenous medical transition 
             # times for all individuals that are at the evacuation site or 
@@ -447,7 +420,7 @@ class MassEvacuation(gym.Env):
 
         return state_ndarray
 
-    def reset(self, options, seed = None):
+    def reset(self, seed = None, options = None):
         """Reset the environment.
 
         Reset the environment to its initial state. The reset can occur in 
@@ -488,7 +461,10 @@ class MassEvacuation(gym.Env):
         """
 
         # Get the `single_sceanrio` option; default is False
-        single_scenario = options.get('single_scenario', False)
+        if options is None:
+            single_scenario = False
+        else:
+            single_scenario = options.get('single_scenario', False)
 
         # Reset the state to its original values
         self.state = {
