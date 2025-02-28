@@ -64,8 +64,8 @@ medical care) or worse (due to injury or exposure to environmental conditions) o
 Changes in such parameters from baseline values may reflect a variety of real-world events, such as:
 
 - the reduction in the arrival time of the initial transport vehicle 
-may reflect the pre-positioning of vehicles during a season;
-- the reduction in the distance between the evacuation and FOL may reflect 
+may reflect the pre-positioning of vehicles during the summer season;
+- the reduction in the distance between the evacuation site and FOL may reflect 
 the building a new aerodrome; and
 - the decrease in the rate at which an individual's medical condition worsens
 may reflect the use of improved medical kit.
