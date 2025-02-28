@@ -34,13 +34,13 @@ Operating Location (FOL).
 
 An example of a multi-domain mass evacuation operation, where the objective is 
 to maximize the number of lives saved by transporting them to the FOL, that may 
-be modelled using `pyMassEvac` is described in @rempel2024a and is depicted in \autoref{fig:example}.
+be modelled using `pyMassEvac` is described in @rempel2024a and is depicted in \autoref{example}.
 
-![Evacuation plan via air with medical assistance provided via ship\label{example}](arctic_map_mass_evac_joss.png)
+![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories.\label{example}](arctic_map_mass_evac_joss.png)
 
 Within this context, `pyMassEvac` may be used to provide decision support to 
 defence and security planners in two ways. First, through exploring the impact 
-of the policies to make the three decisions depicted in \autoref{example}:
+of the policies to make the three decisions depicted in \autoref{example} (see right panel):
 
 - **Decision policy 1**: the policy that determines which individuals are loaded onto a vehicle, 
 such as a helicopter, for transport to the FOL; 
@@ -51,8 +51,8 @@ receiving medical care, for reasons such as limited capacity or that the individ
 medical condition has been sufficiently improved, and returned to the group ready to be 
 transported to the FOL. 
 
-Second, given a set three decision policies, decision support may be provided by using 
-`pyMassEvac` to explore their robustness by modifying a scenario's parameters. For example,
+Second, assuming decision policies are selected, decision support may be provided by using 
+`pyMassEvac` to explore their robustness to the uncertainty in a scenario's parameters. For example,
 `pyMassEvac` may be used to explore how robust a set of decision policies is in terms of 
 the number of lives saved with respect to:
 
@@ -62,7 +62,7 @@ the evacuation site;
 - the rate at which an individual's medical condition becomes better (through receiving
 medical care) or worse (due to injury or exposure to environmental conditions) over time.
 
-Changes in such parameters from baseline values may reflect a variety of real-world events, such as:
+In addition to uncertainty, changes in such parameters from baseline values may reflect a variety of real-world decisions beyond the scenario itself, such as:
 
 - the reduction in the arrival time of the initial transport vehicle 
 may reflect the pre-positioning of vehicles during the summer season;
@@ -95,22 +95,34 @@ With this in mind, `pyMassEvac` aims to enable researchers to study the ...
 
 # Features
 
+Mass evacuation operations are modelled in `pyMassEvac` as a sequential decision problem under 
+uncertainty using Powell's universal framework for sequential decisions @powell2022a. Given this 
+framework, a scenario's parameters are specified via the initial state variable $S_0$. 
 
-
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
-
-Double dollars make self-standing equations:
-
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
-
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
+- $m^e$: Vector of mean time (hours) for an individual to transition from a triage category
+$t \in \mathcal{T}$ to the next triage category $t^\prime \in \mathcal{T}$ at the evacuation
+site, i.e., $m^e_w$ is the mean transition time from the white to green tag category. The set of
+triage categories is given as $\mathcal{T} = {w, g, y, r, b}$.
+- $m^s$: Vector of mean time (hours) for an individual to transition from a triage category
+$t \in \mathcal{T} \ {w}$ to the next triage category $t^\prime \in \mathcal{T} \ {r}$ while
+receiving medical care, i.e., $m^s_r$ is the mean transition time from the red to yellow tag 
+category. 
+- $c^h$: Total capacity for individuals onboard a helicopter.
+- $c_s$: Total capacity for individuals to receive medical care.
+- $\delta^h$: Vector of capacity consumed by each triage category $t \in \mathcal{T}$ onboard
+a helicopter. 
+- $\delta^s$: Vector of capacity consumed by each triage category $t \in \mathcal{T}$ when 
+receiving medical care.
+- $\eta^h$: Total time for a helicopter to load individuals at the evacuation
+site, transport them to the FOL, unload the individuals, and return
+to the evacuation site.
+- $\eta^{sl}$: Total time to transfer individuals at the evacuation site to the local facility 
+(such as a ship) in which they will receive medical care, plus the time until a decision is made as to which individuals to transfer back to the evacuation site.
+- $\eta^{su}$: Total time to transfer individuals from the local facility (such as a ship) in which they are receiving medical care to the evacuation site, plus the time until a decision is made as to which individuals to transport to the FOL. 
+- $\tau^h$: Arrival time of the initial transport vehicle after the individuals have arrived at
+the evacuation site.
+- $\tau^s$: Arrival time of the medical care facility (such as a ship) after the individuals have
+arrived at the evacuation site.
 
 # Limitations
 
