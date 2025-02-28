@@ -439,7 +439,7 @@ def sideSimulation(initial_state, x_hl_k, x_sl_k, x_su_k, v_bar_n, \
                                          v_bar_n,
                                          l)
 
-        if (l == 1) & (seed == 624327):
+        if (l == 2) & (seed == 624327):
             print(x_k_as_dict)
 
         # given the selected decision, get the next state
@@ -693,7 +693,7 @@ if __name__ == '__main__':
 
     # set the initial state
     rempel_2024_initial_state = {
-        'm_e' : {'white' : 120, 'green' : 48, 'yellow' : 8, 'red' : 1.5},
+        'm_e' : {'white' : 60, 'green' : 60, 'yellow' : 60, 'red' : 60},
         'm_s' : {'green' : 48, 'yellow' : 72, 'red' : 120},
         'c_h' : 10,
         'c_s' : 50,
@@ -704,7 +704,7 @@ if __name__ == '__main__':
         'eta_su' : 24,
         'tau_k' : 0,
         'e_k' : 0,
-        'rho_e_k' : {'white' : 0, 'green' : 475, 'yellow' : 25, 'red' : 5},
+        'rho_e_k' : {'white' : 200, 'green' : 200, 'yellow' : 75, 'red' : 25},
         'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
         'initial_helo_arrival' : [0],
         'initial_ship_arrival' : [1000]
