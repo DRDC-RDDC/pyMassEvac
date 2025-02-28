@@ -5,6 +5,7 @@ tags:
   - evacuation
   - Arctic
   - security
+  - Reinforcement Learning
 authors:
   - name: Mark Rempel
     orcid: 0000-0002-6248-1722
@@ -22,7 +23,7 @@ bibliography: paper.bib
 
 `pyMassEvac` is a Python package whose aim is to study mass evacuation 
 scenarios. In particular, it is designed to simulate single- and multi-domain 
-operations in which: 
+mass evacuation operations in which: 
 
 - the individuals to be evacuated are at a remote location, such as in
 the Arctic, where access to immediate medical care is limited or non-existent; 
@@ -31,15 +32,15 @@ due to environmental conditions, injury, or care being provided; and
 - the individuals must be transported from the evacuation site to a Forward 
 Operating Location (FOL).
 
-An example of a multi-domain mass evacuation operation that may be modelled using 
-`pyMassEvac` is described in @rempel2024a and is depicted in \autoref{fig:example}.
+An example of a multi-domain mass evacuation operation, where the objective is 
+to maximize the number of lives saved by transporting them to the FOL, that may 
+be modelled using `pyMassEvac` is described in @rempel2024a and is depicted in \autoref{fig:example}.
 
-![Evacuation plan via air with medical assistance provided via ship\label{fig:example}](arctic_map_mass_evac_joss.png){width = 50%}
+![Evacuation plan via air with medical assistance provided via ship\label{fig:example}](arctic_map_mass_evac_joss.png){ width = 50% }
 
 Within this context, `pyMassEvac` may be used to provide decision support to 
 defence and security planners in two ways. First, through exploring the impact 
-of three specific decisions policies that exist within the type of scenario 
-depicted in \autoref{fig:example}:
+of the policies to make the three decisions depicted in \autoref{fig:example}:
 
 - **Decision policy 1**: the policy that determines which individuals are loaded onto a vehicle, 
 such as a helicopter, for transport to the FOL; 
@@ -83,7 +84,7 @@ The significant decrease in Arctic sea ice in recent decades has resulted in inc
 activity in the Arctic across a range of sectors, such as oil and gas, mining, fishing, 
 and tourism. As the ability to navigate the Arctic's primary sea routes---the Northwest passage, 
 Northern Sea Route, and Transpolar Sea Route (see the left panel of \autoref{fig:example})---
-becomes more commonplace, their use for both trade and the transport of individuals will follow. In regard to the transport of individuals, for example via cruise ships, Arctic nations are concerned with both the potential increase in the number of Search and Rescue (SAR) incidents that may occur, and the increased size of those incidents in terms of the number of individuals in need of evacuation. This is evidenced by recent exercises that have been conducted, such as the SARex series in Norway [@solberg2016a; @solberg2018a], a table-top exercise including the United States, Canada, and the cruise ship industry [@mcnutt2016a], and NANOOK-TATIGIT 21 by the Canadian Armed Forces [@nationaldefence2021a].
+becomes more commonplace, their use for both trade and the transport of individuals will follow. In regard to the transport of individuals, for example via cruise ships, Arctic nations are concerned with both the potential increase in the number of Search and Rescue (SAR) incidents that may occur, and the increased size of those incidents in terms of the number of individuals in need of evacuation. This is evidenced by recent exercises that have been conducted, such as the SARex series in Norway @solberg2016a; @solberg2018a, a table-top exercise including the United States, Canada, and the cruise ship industry @mcnutt2016a, and NANOOK-TATIGIT 21 by the Canadian Armed Forces @nationaldefence2021a.
 
 - "mass evacuation" "software" - review what MassEvac can do and how does it not fit this need?
 - reference Camur (2021)
@@ -127,14 +128,7 @@ For a quick reference, the following citation commands can be used:
 - `[@author:2001]` -> "(Author et al., 2001)"
 - `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
 
-# Figures
 
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
 
 # Acknowledgements
 
