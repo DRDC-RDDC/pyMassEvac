@@ -36,11 +36,11 @@ An example of a multi-domain mass evacuation operation, where the objective is
 to maximize the number of lives saved by transporting them to the FOL, that may 
 be modelled using `pyMassEvac` is described in @rempel2024a and is depicted in \autoref{fig:example}.
 
-![Evacuation plan via air with medical assistance provided via ship\label{fig:example}](arctic_map_mass_evac_joss.png){ width = 50% }
+![Evacuation plan via air with medical assistance provided via ship\label{example}](arctic_map_mass_evac_joss.png)
 
 Within this context, `pyMassEvac` may be used to provide decision support to 
 defence and security planners in two ways. First, through exploring the impact 
-of the policies to make the three decisions depicted in \autoref{fig:example}:
+of the policies to make the three decisions depicted in \autoref{example}:
 
 - **Decision policy 1**: the policy that determines which individuals are loaded onto a vehicle, 
 such as a helicopter, for transport to the FOL; 
