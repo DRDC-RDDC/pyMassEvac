@@ -14,7 +14,7 @@ authors:
 affiliations:
  - name: Defence Research and Development Canada, Canada
    index: 1
-date: 27 February 2025
+date: 6 March 2025
 bibliography: paper.bib
 
 ---
@@ -33,43 +33,50 @@ due to environmental conditions, injury, or care being provided; and
 Operating Location (FOL).
 
 An example of a multi-domain mass evacuation operation, where the objective is 
-to maximize the number of lives saved by transporting them to the FOL, that may 
-be modelled using `pyMassEvac` is described in @rempel2024a and is depicted in \autoref{example}.
+to maximize the number of lives saved by transporting individuals to the FOL, is depicted in \autoref{example}.
 
-![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories.\label{example}](arctic_map_mass_evac_joss.png)
+![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories. For a full description, see @rempel2024a.\label{example}](arctic_map_mass_evac_joss.png)
 
 Within this context, `pyMassEvac` may be used to provide decision support to 
 defence and security planners in two ways. First, through exploring the impact 
-of the policies to make the three decisions depicted in \autoref{example} (see right panel):
+of policies used to make the three decisions depicted in \autoref{example} (see 
+right panel):
 
-- **Decision policy 1**: the policy that determines which individuals are loaded onto a vehicle, 
-such as a helicopter, for transport to the FOL; 
-- **Decision policy 2**: the policy that determines which individuals receive medical care (if 
-available) at the evacuation site, such as onboard a nearby ship; and 
-- **Decision policy 3**: the policy that determines which individuals are removed from the group 
-receiving medical care, for reasons such as limited capacity or that the individuals'
-medical condition has been sufficiently improved, and returned to the group ready to be 
-transported to the FOL. 
+- **Decision policy 1**: the policy that determines which individuals are 
+loaded onto a vehicle, such as a helicopter, for transport from the evacuation 
+site to the FOL; 
+- **Decision policy 2**: the policy that determines which individuals receive 
+medical care (if available) at the evacuation site, such as onboard a nearby 
+ship; and 
+- **Decision policy 3**: the policy that determines which individuals are 
+removed from the group receiving medical care, for reasons such as limited 
+capacity or that the individuals' medical condition has been sufficiently 
+improved, and returned to the group ready to be transported to the FOL. 
 
-Second, assuming decision policies are selected, decision support may be provided by using 
-`pyMassEvac` to explore their robustness to the uncertainty in a scenario's parameters. For example,
-`pyMassEvac` may be used to explore how robust a set of decision policies is in terms of 
+Second, assuming decision policies are selected, decision support may be 
+provided by using `pyMassEvac` to explore the policies' robustness to the 
+uncertainty in a scenario's parameters. For example, `pyMassEvac` may be used 
+to explore how robust a set of decision policies are in terms of 
 the number of lives saved with respect to:
 
-- the arrival time of the initial transport vehicle after the individuals have arrived at
-the evacuation site; 
-- the distance, and thus travel time, between the evacuation site and the FOL; and 
-- the rate at which an individual's medical condition becomes better (through receiving
-medical care) or worse (due to injury or exposure to environmental conditions) over time.
+- the arrival time of the initial transport vehicle after the individuals have 
+arrived at the evacuation site; 
+- the distance, and thus travel time, between the evacuation site and the FOL; 
+and 
+- the rate at which an individual's medical condition becomes better (through 
+receiving medical care) or worse (due to injury or exposure to environmental 
+conditions) over time.
 
-In addition to uncertainty, changes in such parameters from baseline values may reflect a variety of real-world decisions beyond the scenario itself, such as:
+In addition to uncertainty, changes in such parameters from baseline values may 
+reflect a variety of real-world strategic and operational decisions beyond the 
+tactical decisions within scenario itself. For example:
 
 - the reduction in the arrival time of the initial transport vehicle 
-may reflect the pre-positioning of vehicles during the summer season;
-- the reduction in the distance between the evacuation site and FOL may reflect 
-the building a new aerodrome; and
+may reflect an operational decision to pre-position vehicles during the summer 
+season;
+- the reduction in the distance between the evacuation site and FOL may reflect a strategic decision to build a new aerodrome; and
 - the decrease in the rate at which an individual's medical condition worsens
-may reflect the use of improved medical kit.
+may reflect an operational decision to invest in improved medical kit.
 
 Thus, `pyMassEvac` is designed to be primarily used by operational researchers who study humanitarian or defence and security operations.
 
@@ -80,11 +87,14 @@ are described in @rempel2021a, @rempel2023a, and @rempel2024a.
 
 # Statement of need
 
-The significant decrease in Arctic sea ice in recent decades has resulted in increased
-activity in the Arctic across a range of sectors, such as oil and gas, mining, fishing, 
-and tourism. As the ability to navigate the Arctic's primary sea routes---the Northwest passage, 
-Northern Sea Route, and Transpolar Sea Route (see the left panel of \autoref{fig:example})---
-becomes more commonplace, their use for both trade and the transport of individuals will follow. In regard to the transport of individuals, for example via cruise ships, Arctic nations are concerned with both the potential increase in the number of Search and Rescue (SAR) incidents that may occur, and the increased size of those incidents in terms of the number of individuals in need of evacuation. This is evidenced by recent exercises that have been conducted, such as the SARex series in Norway @solberg2016a; @solberg2018a, a table-top exercise including the United States, Canada, and the cruise ship industry @mcnutt2016a, and NANOOK-TATIGIT 21 by the Canadian Armed Forces @nationaldefence2021a.
+The significant decrease in Arctic sea ice in recent decades has resulted in 
+increased activity in the Arctic across a range of sectors, such as oil and 
+gas, mining, fishing, and tourism. As the ability to navigate the Arctic's 
+primary sea routes---the Northwest passage, Northern Sea Route, and Transpolar 
+Sea Route (see the left panel of \autoref{example})---becomes more commonplace, 
+their use for both trade and the transport of individuals will follow. For 
+example, with the potential increase in the number of Arctic cruise ships,
+Arctic nations are concerned with both the potential increase in the number of Search and Rescue (SAR) incidents that may occur and the increased size of those incidents in terms of the number of individuals in need of evacuation. This is evidenced by recent exercises that have been conducted, such as the SARex series in Norway [@solberg2016a; @solberg2018a], a table-top exercise including the United States, Canada, and the cruise ship industry [@mcnutt2016a], and NANOOK-TATIGIT 21 by the Canadian Armed Forces [@nationaldefence2021a].
 
 - "mass evacuation" "software" - review what MassEvac can do and how does it not fit this need?
 - reference Camur (2021)
@@ -95,36 +105,87 @@ With this in mind, `pyMassEvac` aims to enable researchers to study the ...
 
 # Features
 
-Mass evacuation operations are modelled in `pyMassEvac` as a sequential decision problem under 
-uncertainty using Powell's universal framework for sequential decisions @powell2022a. Given this 
-framework, a scenario's parameters are specified via the initial state variable $S_0$. 
+## Defining an evacuation operation
 
-- $m^e$: Vector of mean time (hours) for an individual to transition from a triage category
-$t \in \mathcal{T}$ to the next triage category $t^\prime \in \mathcal{T}$ at the evacuation
-site, i.e., $m^e_w$ is the mean transition time from the white to green tag category. The set of
-triage categories is given as $\mathcal{T} = {w, g, y, r, b}$.
-- $m^s$: Vector of mean time (hours) for an individual to transition from a triage category
-$t \in \mathcal{T} \ {w}$ to the next triage category $t^\prime \in \mathcal{T} \ {r}$ while
-receiving medical care, i.e., $m^s_r$ is the mean transition time from the red to yellow tag 
-category. 
+Mass evacuation operations are modelled in `pyMassEvac` as a sequential 
+decision problem under uncertainty using Powell's universal framework for 
+sequential decisions [@powell2022a]. Given this framework, a scenario's 
+parameters are specified via the initial state variable $S_0$, which 
+consists of the following elements:
+
+- $m^e$: Vector of mean time (hours) for an individual to transition from a 
+triage category $t \in \mathcal{T}$ to the next triage category $t^\prime \in 
+\mathcal{T}$ at the evacuation site, i.e., $m^e_w$ is the mean transition time 
+from the white ($w$) to green ($g$) tag category. The set of triage categories 
+is given as $\mathcal{T} = \{w, g, y, r, b\}$.
+- $m^s$: Vector of mean time (hours) for an individual to transition from a 
+triage category $t \in \mathcal{T} \\ \{w\}$ to the next triage category 
+$t^\prime \in \mathcal{T} \\ \{r\}$ while receiving medical care, i.e., $m^s_r$ 
+is the mean transition time from the red ($r$) to yellow ($y$) tag category. 
 - $c^h$: Total capacity for individuals onboard a helicopter.
-- $c_s$: Total capacity for individuals to receive medical care.
-- $\delta^h$: Vector of capacity consumed by each triage category $t \in \mathcal{T}$ onboard
-a helicopter. 
-- $\delta^s$: Vector of capacity consumed by each triage category $t \in \mathcal{T}$ when 
-receiving medical care.
+- $c^s$: Total capacity for individuals to receive medical care.
+- $\delta^h$: Vector of capacity consumed by each triage category $t \in 
+\mathcal{T} \\ \{b\}$ onboard a helicopter. Individual in the black ($b$) 
+category are not transported as they are deceased and are assumed to be 
+recovered at the end of the rescue operation.
+- $\delta^s$: Vector of capacity consumed by each triage category $t \in 
+\mathcal{T} \\ \{b\}$ when receiving medical care.
 - $\eta^h$: Total time for a helicopter to load individuals at the evacuation
 site, transport them to the FOL, unload the individuals, and return
 to the evacuation site.
-- $\eta^{sl}$: Total time to transfer individuals at the evacuation site to the local facility 
-(such as a ship) in which they will receive medical care, plus the time until a decision is made as to which individuals to transfer back to the evacuation site.
-- $\eta^{su}$: Total time to transfer individuals from the local facility (such as a ship) in which they are receiving medical care to the evacuation site, plus the time until a decision is made as to which individuals to transport to the FOL. 
-- $\tau^h$: Arrival time of the initial transport vehicle after the individuals have arrived at
+- $\eta^{sl}$: Total time to transfer individuals at the evacuation site to the 
+local facility (such as a ship) in which they will receive medical care, plus 
+the time until a decision is made as to which individuals to transfer back to 
 the evacuation site.
-- $\tau^s$: Arrival time of the medical care facility (such as a ship) after the individuals have
-arrived at the evacuation site.
+- $\eta^{su}$: Total time to transfer individuals from the local facility (such 
+as a ship) in which they are receiving medical care to the evacuation site, 
+plus the time until a decision is made as to which individuals to transport to 
+the FOL. 
+- $\tau^h$: Vector of arrival time (hours) of each transport vehicle after the 
+individuals have arrived at the evacuation site.
+- $\tau^s$: Vector of arrival time (hours) of each medical care facility (such 
+as a ship) after the individuals have arrived at the evacuation site.
 
-# Limitations
+An example of an initial state is given in the tutorial found in 
+`tutorial\tutorial.ipynb`.
+
+## Example decision policies
+
+`pyMassEvac` provides a set of decision policies that implements those 
+described in @rempel2024a. All policies are defined in the 
+`mass_evacuation_policy.py` and are summarized as follows:
+
+- `green_first_loading_policy`: This policy may be used for either
+**Decision policy 1** or **Decision policy 2** and puts an emphasis 
+on loading healthier individuals prior to those with worse medical
+conditions.
+- `yellow_first_loading_policy`: This policy is similar to the
+green-first loading policy, with the exception that it focuses on 
+those individuals that require near-term care, followed by those in
+descending order in triage category. This policy may be used for
+either **Decision policy 1** or **Decision policy 2**.
+- `critical_first_loading_policy`: This policy prioritizes those
+individuals that require immediate attention before moving onto
+less critical categories. This policy may be used for
+either **Decision policy 1** or **Decision policy 2**.
+- `random_loading_policy`: This policy randomly selects individuals,
+regardless of their triage category. This policy may be used for
+either **Decision policy 1** or **Decision policy 2**.
+- `random_unloading_policy`: This policy randomly selects individuals,
+regardless of their triage category. This policy may be used for
+**Decision policy 3**.
+- `white_unloading_policy`: This policy only removes individuals from 
+the medical facility located at, or near, the evacuation site whose
+medical condition has improved to be given a white ($w$) tag category.
+This policy may be used for **Decision policy 3**.
+
+The tutorial found in `tutorial\tutorial.ipynb` demonstrates how to use
+these decision policies. Specifically, it uses the 
+`green_first_loading_policy` for **Decision policy 1** and 
+**Decision policy 2**, and the `white_unloading_policy` for
+**Decision policy 3**.
+
+## Integration with Gymnasium
 
 # Citations
 
