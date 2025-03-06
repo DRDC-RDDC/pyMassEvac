@@ -1,5 +1,5 @@
 ---
-title: 'pyMassEvac: A Python package for simulating multi-domain mass evacuation scenarios'
+title: 'pyMassEvac: A Python package for simulating multi-domain mass evacuation operations'
 tags:
   - Python
   - evacuation
@@ -33,9 +33,9 @@ due to environmental conditions, injury, or care being provided; and
 Operating Location (FOL).
 
 An example of a multi-domain mass evacuation operation, where the objective is 
-to maximize the number of lives saved by transporting individuals to the FOL, is depicted in \autoref{example}.
+to maximize the number of lives saved by transporting individuals to an FOL, is depicted in \autoref{example}.
 
-![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories. For a full description, see @rempel2024a.\label{example}](arctic_map_mass_evac_joss.png)
+![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories (white, green, yellow, red, black; black represents deceased). For a full description, see @rempel2024a.\label{example}](arctic_map_mass_evac_joss.png)
 
 Within this context, `pyMassEvac` may be used to provide decision support to 
 defence and security planners in two ways. First, through exploring the impact 
@@ -54,27 +54,27 @@ capacity or that the individuals' medical condition has been sufficiently
 improved, and returned to the group ready to be transported to the FOL. 
 
 Second, assuming decision policies are selected, decision support may be 
-provided by using `pyMassEvac` to explore the policies' robustness to the 
-uncertainty in a scenario's parameters. For example, `pyMassEvac` may be used 
+provided by using `pyMassEvac` to explore the selected policies' robustness
+to changes in a scenario's parameters. For example, `pyMassEvac` may be used 
 to explore how robust a set of decision policies are in terms of 
 the number of lives saved with respect to:
 
-- the arrival time of the initial transport vehicle after the individuals have 
-arrived at the evacuation site; 
-- the distance, and thus travel time, between the evacuation site and the FOL; 
-and 
+- the initial arrival time of one or more transport vehicles after the 
+individuals have arrived at the evacuation site; 
+- the travel time between the evacuation site and the FOL; and 
 - the rate at which an individual's medical condition becomes better (through 
 receiving medical care) or worse (due to injury or exposure to environmental 
 conditions) over time.
 
-In addition to uncertainty, changes in such parameters from baseline values may 
-reflect a variety of real-world strategic and operational decisions beyond the 
-tactical decisions within scenario itself. For example:
+Changes in a scenario's parameters from baseline values may reflect a variety 
+of real-world strategic and operational decisions beyond the tactical decisions 
+made within scenario itself. For example:
 
-- the reduction in the arrival time of the initial transport vehicle 
+- the reduction in the initial arrival time of transport vehicles 
 may reflect an operational decision to pre-position vehicles during the summer 
 season;
-- the reduction in the distance between the evacuation site and FOL may reflect a strategic decision to build a new aerodrome; and
+- the reduction in the travel time between the evacuation site and FOL may reflect 
+a strategic decision to build a new aerodrome; and
 - the decrease in the rate at which an individual's medical condition worsens
 may reflect an operational decision to invest in improved medical kit.
 
@@ -82,7 +82,7 @@ Thus, `pyMassEvac` is designed to be primarily used by operational researchers w
 
 `pyMassEvac` is accessible at `https://github.com/mrempel/pyMassEvac` and is 
 installed via a `setup.py` script. In addition, published evacuation scenarios 
-that have studied using this package (or its earlier developmental versions) 
+that have studied using this package (or one of its earlier developmental versions) 
 are described in @rempel2021a, @rempel2023a, and @rempel2024a.
 
 # Statement of need
@@ -109,7 +109,8 @@ With this in mind, `pyMassEvac` aims to enable researchers to study the ...
 
 Mass evacuation operations are modelled in `pyMassEvac` as a sequential 
 decision problem under uncertainty using Powell's universal framework for 
-sequential decisions [@powell2022a]. Given this framework, a scenario's 
+sequential decisions [@powell2022a]. See Section 4 of @rempel2024a for the
+complete description of the model. Given this framework, a scenario's 
 parameters are specified via the initial state variable $S_0$, which 
 consists of the following elements:
 
@@ -117,37 +118,41 @@ consists of the following elements:
 triage category $t \in \mathcal{T}$ to the next triage category $t^\prime \in 
 \mathcal{T}$ at the evacuation site, i.e., $m^e_w$ is the mean transition time 
 from the white ($w$) to green ($g$) tag category. The set of triage categories 
-is given as $\mathcal{T} = \{w, g, y, r, b\}$.
+is given as $\mathcal{T} = \{w, g, y, r, b\}$;
 - $m^s$: Vector of mean time (hours) for an individual to transition from a 
-triage category $t \in \mathcal{T} \\ \{w\}$ to the next triage category 
-$t^\prime \in \mathcal{T} \\ \{r\}$ while receiving medical care, i.e., $m^s_r$ 
-is the mean transition time from the red ($r$) to yellow ($y$) tag category. 
-- $c^h$: Total capacity for individuals onboard a helicopter.
-- $c^s$: Total capacity for individuals to receive medical care.
+triage category $t \in \mathcal{T} \setminus \{w\}$ to the next triage category 
+$t^\prime \in \mathcal{T} \setminus \{r\}$ while receiving medical care, i.e., $m^s_r$ 
+is the mean transition time from the red ($r$) to yellow ($y$) tag category;
+- $c^h$: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
+- $c^s$: Total capacity for individuals to receive medical care, such as onboard a ship;
 - $\delta^h$: Vector of capacity consumed by each triage category $t \in 
-\mathcal{T} \\ \{b\}$ onboard a helicopter. Individual in the black ($b$) 
+\mathcal{T} \setminus \{b\}$ onboard a transport vehicle. Individual in the black ($b$) tag
 category are not transported as they are deceased and are assumed to be 
-recovered at the end of the rescue operation.
+recovered at the end of the rescue operation;
 - $\delta^s$: Vector of capacity consumed by each triage category $t \in 
-\mathcal{T} \\ \{b\}$ when receiving medical care.
-- $\eta^h$: Total time for a helicopter to load individuals at the evacuation
+\mathcal{T} \setminus \{b\}$ when receiving medical care;
+- $\eta^h$: Total time for a transport vehicle to load individuals at the evacuation
 site, transport them to the FOL, unload the individuals, and return
-to the evacuation site.
+to the evacuation site;
 - $\eta^{sl}$: Total time to transfer individuals at the evacuation site to the 
 local facility (such as a ship) in which they will receive medical care, plus 
 the time until a decision is made as to which individuals to transfer back to 
-the evacuation site.
+the evacuation site;
 - $\eta^{su}$: Total time to transfer individuals from the local facility (such 
 as a ship) in which they are receiving medical care to the evacuation site, 
 plus the time until a decision is made as to which individuals to transport to 
-the FOL. 
-- $\tau^h$: Vector of arrival time (hours) of each transport vehicle after the 
-individuals have arrived at the evacuation site.
-- $\tau^s$: Vector of arrival time (hours) of each medical care facility (such 
+the FOL;
+- $\tau^h$: Vector of initial arrival time (hours) of each transport vehicle after the 
+individuals have arrived at the evacuation site; and
+- $\tau^s$: Vector of initial arrival time (hours) of each medical care facility (such 
 as a ship) after the individuals have arrived at the evacuation site.
 
-An example of an initial state is given in the tutorial found in 
-`tutorial\tutorial.ipynb`.
+Note that the initial state in `pyMassEvac` differs from @rempel2024a as this package
+includes both $\tau^h$ and $\tau^s$. In @rempel2024a these two parameters were specified
+separately in the case study presented in Section 5.
+
+An example of an initial state, with one transport vehicle and one medical care facility, 
+is given in the tutorial found in `tutorial\tutorial.ipynb`.
 
 ## Example decision policies
 
@@ -175,9 +180,11 @@ either **Decision policy 1** or **Decision policy 2**.
 regardless of their triage category. This policy may be used for
 **Decision policy 3**.
 - `white_unloading_policy`: This policy only removes individuals from 
-the medical facility located at, or near, the evacuation site whose
-medical condition has improved to be given a white ($w$) tag category.
-This policy may be used for **Decision policy 3**.
+the medical facility whose medical condition has improved to be assigned a 
+white ($w$) tag category. This policy may be used for **Decision policy 3**.
+
+In addition, a `do_nothing` policy to model situations in which a
+decision is to be delayed.
 
 The tutorial found in `tutorial\tutorial.ipynb` demonstrates how to use
 these decision policies. Specifically, it uses the 
@@ -185,23 +192,18 @@ these decision policies. Specifically, it uses the
 **Decision policy 2**, and the `white_unloading_policy` for
 **Decision policy 3**.
 
-## Integration with Gymnasium
+## Ready for reinforcement learning
 
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
-
-
+`pyMassEvac` is implemented as a custom Gymnasium environment [@towers2024a].
+An example of its use as an environment with fixed decision policies is 
+provided in `tutorial\tutorial.ipynb`. `pyMassEvac` may also be used in 
+combination with a reinforcement learning to seek optimal, or at least 
+near-optimal, decision policies. Among the many considerations that must be 
+made when selecting or designing a learning algorithm for this environment 
+is that the set of valid actions are dependent on both the state variable 
+$S_k$ and the parameters defined in the initial state $S_0$---see Section 
+4.1 of @rempel2024a. Thus, when using a reinforcement learning algorithm a 
+form of invalid action masking [@huang2022a; hou2023a] must be implemented.
 
 # Acknowledgements
 
