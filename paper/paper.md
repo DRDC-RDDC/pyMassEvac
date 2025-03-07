@@ -208,7 +208,7 @@ made when selecting or designing a learning algorithm for this environment
 is that the set of valid actions are dependent on both the state variable 
 $S_k$ and the parameters defined in the initial state $S_0$---see Section 
 4.1 of @rempel2024a. Thus, when using a reinforcement learning algorithm a 
-form of invalid action masking [@huang2022a; hou2023a] must be implemented.
+form of invalid action masking [@huang2022a; @hou2023a] must be implemented.
 
 # Acknowledgements
 
