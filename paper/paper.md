@@ -89,25 +89,24 @@ are described in @rempel2021a, @rempel2023a, and @rempel2024a.
 
 The significant decrease in Arctic sea ice in recent decades has resulted in 
 increased activity in the Arctic across a range of sectors, such as oil and 
-gas, mining, fishing, and tourism. For example, with the potential increase in 
-the number of Arctic cruise ships, Arctic nations are concerned with both the 
-potential increase in the number of Search and Rescue (SAR) incidents that 
-may occur and the increased size of those incidents in terms of the number of 
-individuals in need of evacuation. This is evidenced by recent exercises that 
-have been conducted, such as the SARex series in Norway [@solberg2016a; 
-@solberg2018a], a table-top exercise including the United States, Canada, and 
-the cruise ship industry [@mcnutt2016a], and NANOOK-TATIGIT 21 by the Canadian 
-Armed Forces [@nationaldefence2021a].
+gas, mining, fishing, and tourism. With respect to tourism and the potential 
+increase in the number of Arctic cruise ships, Arctic nations are concerned 
+with both the potential increase in the number of Search and Rescue (SAR) 
+incidents that may occur and the increased size of those incidents in terms 
+of the number of individuals in need of evacuation. This is evidenced by 
+recent exercises that have been conducted, such as the SARex series in 
+Norway [@solberg2016a; @solberg2018a], a table-top exercise including the 
+United States, Canada, and the cruise ship industry [@mcnutt2016a], and 
+NANOOK-TATIGIT 21 by the Canadian Armed Forces [@nationaldefence2021a].
 
-- "mass evacuation" "software" - review what MassEvac can do and how does it not fit this need?
-- reference Camur (2021)
-
-While software exists to support planning for and executing evacuation operations, this software either requires a paid license [@sarresponse], focuses on search planning [@sarops], 
-
-
- does not enable a researcher to study the impact of different decision policies, or ... 
-
-With this in mind, `pyMassEvac` aims to enable researchers to study the ...
+While software exists to support planning for and executing evacuation 
+operations, this software either requires a paid license [@sarresponse; 
+@massevac], focuses on search planning [@sarops], or addressed specific 
+situations such as wildfires [@guman2024a]. With this in mind, `pyMassEvac` 
+aims to provide an open source software package that enables researchers 
+to both assess the impact of strategic and operational decisions
+made prior to an evacuation operation occurring, as well as the impact of
+tactical decisions made within the operation itself. 
 
 # Features
 
@@ -120,15 +119,15 @@ complete description of the model. Given this framework, a scenario's
 parameters are specified via the initial state variable $S_0$, which 
 consists of the following elements:
 
-- $m^e$: Vector of mean time (hours) for an individual to transition from a 
-triage category $t \in \mathcal{T}$ to the next triage category $t^\prime \in 
-\mathcal{T}$ at the evacuation site, i.e., $m^e_w$ is the mean transition time 
-from the white ($w$) to green ($g$) tag category. The set of triage categories 
-is given as $\mathcal{T} = \{w, g, y, r, b\}$;
-- $m^s$: Vector of mean time (hours) for an individual to transition from a 
-triage category $t \in \mathcal{T} \setminus \{w\}$ to the next triage category 
-$t^\prime \in \mathcal{T} \setminus \{r\}$ while receiving medical care, i.e., $m^s_r$ 
-is the mean transition time from the red ($r$) to yellow ($y$) tag category;
+- $m^e$: Vector of mean time (hours) for an individual's medical condition
+to worsen and transition from a triage category $t \in \mathcal{T} \setminus \{b\}$ 
+to the next lower triage category $t^\prime \in \mathcal{T} \setminus \{w\}$ at the evacuation 
+site, i.e., $m^e_w$ is the mean transition time from the white ($w$) to green ($g$) tag category. 
+The set of triage categories is given as $\mathcal{T} = \{w, g, y, r, b\}$; 
+- $m^s$: Vector of mean time (hours) for an individual's medical condition to
+improve and transition from a triage category $t \in \mathcal{T} \setminus \{w, b\}$ to the next 
+higher triage category $t^\prime \in \mathcal{T} \setminus \{r, b\}$ while receiving medical care, 
+i.e., $m^s_r$ is the mean transition time from the red ($r$) to yellow ($y$) tag category;
 - $c^h$: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
 - $c^s$: Total capacity for individuals to receive medical care, such as onboard a ship;
 - $\delta^h$: Vector of capacity consumed by each triage category $t \in 
@@ -137,10 +136,10 @@ category are not transported as they are deceased and are assumed to be
 recovered at the end of the rescue operation;
 - $\delta^s$: Vector of capacity consumed by each triage category $t \in 
 \mathcal{T} \setminus \{b\}$ when receiving medical care;
-- $\eta^h$: Total time for a transport vehicle to load individuals at the evacuation
+- $\eta^h$: Total time (hours) for a transport vehicle to load individuals at the evacuation
 site, transport them to the FOL, unload the individuals, and return
 to the evacuation site;
-- $\eta^{sl}$: Total time to transfer individuals at the evacuation site to the 
+- $\eta^{sl}$: Total time (hours) to transfer individuals at the evacuation site to the 
 local facility (such as a ship) in which they will receive medical care, plus 
 the time until a decision is made as to which individuals to transfer back to 
 the evacuation site;
@@ -163,34 +162,34 @@ is given in the tutorial found in `tutorial\tutorial.ipynb`.
 ## Example decision policies
 
 `pyMassEvac` provides a set of decision policies that implements those 
-described in @rempel2024a. All policies are defined in the 
+described in @rempel2024a. All policies are defined in 
 `mass_evacuation_policy.py` and are summarized as follows:
 
 - `green_first_loading_policy`: This policy may be used for either
 **Decision policy 1** or **Decision policy 2** and puts an emphasis 
 on loading healthier individuals prior to those with worse medical
-conditions.
+conditions;
 - `yellow_first_loading_policy`: This policy is similar to the
 green-first loading policy, with the exception that it focuses on 
 those individuals that require near-term care, followed by those in
 descending order in triage category. This policy may be used for
-either **Decision policy 1** or **Decision policy 2**.
+either **Decision policy 1** or **Decision policy 2**;
 - `critical_first_loading_policy`: This policy prioritizes those
 individuals that require immediate attention before moving onto
 less critical categories. This policy may be used for
-either **Decision policy 1** or **Decision policy 2**.
+either **Decision policy 1** or **Decision policy 2**;
 - `random_loading_policy`: This policy randomly selects individuals,
 regardless of their triage category. This policy may be used for
-either **Decision policy 1** or **Decision policy 2**.
+either **Decision policy 1** or **Decision policy 2**;
 - `random_unloading_policy`: This policy randomly selects individuals,
 regardless of their triage category. This policy may be used for
-**Decision policy 3**.
+**Decision policy 3**; and
 - `white_unloading_policy`: This policy only removes individuals from 
-the medical facility whose medical condition has improved to be assigned a 
-white ($w$) tag category. This policy may be used for **Decision policy 3**.
+the medical facility whose medical condition has improved such that they
+are assigned a white ($w$) tag. This policy may be used for **Decision policy 3**.
 
-In addition, a `do_nothing` policy to model situations in which a
-decision is to be delayed.
+In addition, a `do_nothing` policy is provided to model situations in which a
+decision is to be delayed or a model the lack of transport of medical care.
 
 The tutorial found in `tutorial\tutorial.ipynb` demonstrates how to use
 these decision policies. Specifically, it uses the 
@@ -213,7 +212,8 @@ form of invalid action masking [@huang2022a; hou2023a] must be implemented.
 
 # Acknowledgements
 
-I acknowledge contributions from Nicholi Shiell and Kaeden Tessier who are co-authors 
-on related papers. These collaborations inspired the development of this package.
+I acknowledge contributions from both Nicholi Shiell and Kaeden Tessier, who 
+are co-authors on related papers. These collaborations inspired the development 
+of this package.
 
 # References

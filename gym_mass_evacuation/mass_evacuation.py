@@ -1185,12 +1185,12 @@ class MassEvacuation(gym.Env):
             # be checked to determine if they are to be removed from the ship
             # and returned to the evacuation site (making room for others to
             # board the ship and receive medical attention).
-            self.queue.put(self.initial_state['eta_su'], 3, setRelative = True)
+            self.queue.put(self.initial_state['eta_sl'], 3, setRelative = True)
 
         # e_hat_k_plus_one == 3: a ship will be unloading individuals next; 
         # schedule when the next set will be loading
         if e_hat_k_plus_one == 3:
-            self.queue.put(self.initial_state['eta_sl'], 2, setRelative = True)
+            self.queue.put(self.initial_state['eta_su'], 2, setRelative = True)
 
         return {'delta_hat_e_k': medical_transition['delta_hat_e_k'], \
                  'delta_hat_s_k': medical_transition['delta_hat_s_k'], \
