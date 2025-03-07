@@ -14,7 +14,7 @@ authors:
 affiliations:
  - name: Defence Research and Development Canada, Canada
    index: 1
-date: 6 March 2025
+date: 7 March 2025
 bibliography: paper.bib
 
 ---
@@ -89,17 +89,23 @@ are described in @rempel2021a, @rempel2023a, and @rempel2024a.
 
 The significant decrease in Arctic sea ice in recent decades has resulted in 
 increased activity in the Arctic across a range of sectors, such as oil and 
-gas, mining, fishing, and tourism. As the ability to navigate the Arctic's 
-primary sea routes---the Northwest passage, Northern Sea Route, and Transpolar 
-Sea Route (see the left panel of \autoref{example})---becomes more commonplace, 
-their use for both trade and the transport of individuals will follow. For 
-example, with the potential increase in the number of Arctic cruise ships,
-Arctic nations are concerned with both the potential increase in the number of Search and Rescue (SAR) incidents that may occur and the increased size of those incidents in terms of the number of individuals in need of evacuation. This is evidenced by recent exercises that have been conducted, such as the SARex series in Norway [@solberg2016a; @solberg2018a], a table-top exercise including the United States, Canada, and the cruise ship industry [@mcnutt2016a], and NANOOK-TATIGIT 21 by the Canadian Armed Forces [@nationaldefence2021a].
+gas, mining, fishing, and tourism. For example, with the potential increase in 
+the number of Arctic cruise ships, Arctic nations are concerned with both the 
+potential increase in the number of Search and Rescue (SAR) incidents that 
+may occur and the increased size of those incidents in terms of the number of 
+individuals in need of evacuation. This is evidenced by recent exercises that 
+have been conducted, such as the SARex series in Norway [@solberg2016a; 
+@solberg2018a], a table-top exercise including the United States, Canada, and 
+the cruise ship industry [@mcnutt2016a], and NANOOK-TATIGIT 21 by the Canadian 
+Armed Forces [@nationaldefence2021a].
 
 - "mass evacuation" "software" - review what MassEvac can do and how does it not fit this need?
 - reference Camur (2021)
 
-While software exists to support planning for and executing evacuation operations, this software either requires a paid license, does not enable a researcher to study the impact of different decision policies, or ... 
+While software exists to support planning for and executing evacuation operations, this software either requires a paid license [@sarresponse], focuses on search planning [@sarops], 
+
+
+ does not enable a researcher to study the impact of different decision policies, or ... 
 
 With this in mind, `pyMassEvac` aims to enable researchers to study the ...
 
