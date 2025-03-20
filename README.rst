@@ -32,17 +32,17 @@ Assuming decision policies are selected, **pyMassEvac** may be used to explore t
 
 An operation's initial state is defined by 11 parameters. These are defined as follows:
 
-* $m^e$: Vector of mean time (hours) for an individual's medical condition to worsen and transition from a triage category :math:`t \in \mathcal{T} \setminus \{b\}` to the next lower triage category :math:`t^\prime \in \mathcal{T} \setminus \{w\}` at the evacuation site, i.e., :math:`m^e_w` is the mean transition time from the white (:math:`w`) to green (:math:`g`) tag category. The set of triage categories is given as :math:`\mathcal{T} = \{w, g, y, r, b\}`; 
-* :math:`m^s`: Vector of mean time (hours) for an individual's medical condition to improve and transition from a triage category :math:`t \\in \\mathcal{T} \\setminus \\{w, b\\}` to the next higher triage category :math:`t^\\prime \\in \\mathcal{T} \\setminus \\{r, b\\}` while receiving medical care, i.e., :math:`m^s_r` is the mean transition time from the red (:math:`r`) to yellow (:math:`y`) tag category;
-* :math:`c^h`: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
-* :math:`c^s``: Total capacity for individuals to receive medical care, such as onboard a ship;
-* :math:`\\delta^h`: Vector of capacity consumed by each triage category :math:`\\t \\in \\mathcal{T} \\setminus \\{b\\}` onboard a transport vehicle. Individual in the black (:math:`b`) tag category are not transported as they are deceased and are assumed to be recovered at the end of the rescue operation;
-* :math:`\\delta^s`: Vector of capacity consumed by each triage category :math:`t \\in \\mathcal{T} \\setminus \\{b\\}` when receiving medical care;
-* :math:`\\eta^h``: Total time (hours) for a transport vehicle to load individuals at the evacuation site, transport them to the FOL, unload the individuals, and return to the evacuation site;
-* :math:`\eta^{sl}`: Total time (hours) to transfer individuals at the evacuation site to the local facility (such as a ship) in which they will receive medical care, plus the time until a decision is made as to which individuals to transfer back to the evacuation site;
-* :math:`\\eta^{su}`: Total time to transfer individuals from the local facility (such as a ship) in which they are receiving medical care to the evacuation site, plus the time until a decision is made as to which individuals to transport to the FOL;
-* :math:`\tau^h`: Vector of initial arrival time (hours) of each transport vehicle after the individuals have arrived at the evacuation site; and
-* :math:`\tau^s`: Vector of initial arrival time (hours) of each medical care facility (such as a ship) after the individuals have arrived at the evacuation site.
+* $m^e$: Vector of mean time (hours) for an individual's medical condition to worsen and transition from a triage category $t \in \mathcal{T} \setminus \{b\}$ to the next lower triage category $t^\prime \in \mathcal{T} \setminus \{w\}$ at the evacuation site, i.e., $m^e_w$ is the mean transition time from the white ($w$) to green ($g$) tag category. The set of triage categories is given as $\mathcal{T} = \{w, g, y, r, b\}$; 
+* $m^s$: Vector of mean time (hours) for an individual's medical condition to improve and transition from a triage category $t \in \mathcal{T} \setminus \{w, b\}$ to the next higher triage category $t^\prime \in \mathcal{T} \setminus \{r, b\}$ while receiving medical care, i.e., $m^s_r$ is the mean transition time from the red ($r$) to yellow ($y$) tag category;
+* $c^h$: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
+* $c^s$: Total capacity for individuals to receive medical care, such as onboard a ship;
+* $\delta^h$: Vector of capacity consumed by each triage category $\t \in \mathcal{T} \setminus \{b\}` onboard a transport vehicle. Individual in the black ($b$) tag category are not transported as they are deceased and are assumed to be recovered at the end of the rescue operation;
+* $\delta^s$: Vector of capacity consumed by each triage category $t \in \mathcal{T} \setminus \{b\}$ when receiving medical care;
+* $\eta^h$: Total time (hours) for a transport vehicle to load individuals at the evacuation site, transport them to the FOL, unload the individuals, and return to the evacuation site;
+* $\eta^{sl}$: Total time (hours) to transfer individuals at the evacuation site to the local facility (such as a ship) in which they will receive medical care, plus the time until a decision is made as to which individuals to transfer back to the evacuation site;
+* $\eta^{su}$: Total time to transfer individuals from the local facility (such as a ship) in which they are receiving medical care to the evacuation site, plus the time until a decision is made as to which individuals to transport to the FOL;
+* $\tau^h$: Vector of initial arrival time (hours) of each transport vehicle after the individuals have arrived at the evacuation site; and
+* $\tau^s$: Vector of initial arrival time (hours) of each medical care facility (such as a ship) after the individuals have arrived at the evacuation site.
 
 Installation
 ############
