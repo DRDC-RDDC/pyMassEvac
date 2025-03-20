@@ -32,7 +32,7 @@ Assuming decision policies are selected, **pyMassEvac** may be used to explore t
 
 An operation's initial state is defined by 11 parameters. These are defined as follows:
 
-* :math:`m^e`: Vector of mean time (hours) for an individual's medical condition to worsen and transition from a triage category :math:`t \\in \\mathcal{T} \\setminus \\{b\\}` to the next lower triage category :math:`t^\\prime \\in \\mathcal{T} \\setminus \\{w\\}` at the evacuation site, i.e., :math:`m^e_w` is the mean transition time from the white (:math:`w`) to green (:math:`g`) tag category. The set of triage categories is given as :math:`\\mathcal{T} = \\{w, g, y, r, b\\}`; 
+* :math:`m^e`: Vector of mean time (hours) for an individual's medical condition to worsen and transition from a triage category :math:`t \in \mathcal{T} \setminus \{b\}` to the next lower triage category :math:`t^\prime \in \mathcal{T} \setminus \{w\}` at the evacuation site, i.e., :math:`m^e_w` is the mean transition time from the white (:math:`w`) to green (:math:`g`) tag category. The set of triage categories is given as :math:`\mathcal{T} = \{w, g, y, r, b\}`; 
 * :math:`m^s`: Vector of mean time (hours) for an individual's medical condition to improve and transition from a triage category :math:`t \\in \\mathcal{T} \\setminus \\{w, b\\}` to the next higher triage category :math:`t^\\prime \\in \\mathcal{T} \\setminus \\{r, b\\}` while receiving medical care, i.e., :math:`m^s_r` is the mean transition time from the red (:math:`r`) to yellow (:math:`y`) tag category;
 * :math:`c^h`: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
 * :math:`c^s``: Total capacity for individuals to receive medical care, such as onboard a ship;
