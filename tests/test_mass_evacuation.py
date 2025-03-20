@@ -1,7 +1,8 @@
+import copy
 import pytest
 import numpy as np
 import pandas as pd
-import copy
+
 
 from gym_mass_evacuation import mass_evacuation
 from gym_mass_evacuation import mass_evacuation_policy
@@ -159,9 +160,9 @@ def test_observation(initial_state, seed):
             'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
 
-    expected_result = env.state
+    expected_result = np.array([0, 0, 0, 475, 20, 5, 0, 0, 0, 0])
 
-    assert expected_result == env.observation()
+    assert np.array_equal(expected_result, env.observation())
 
 def test_reset_1(initial_state, seed):
     """Test the reset method when `single_scenario = True`.
@@ -1034,7 +1035,7 @@ def test_exog_info_fn_2(initial_state, seed):
 
     assert expected_delta_hat_e_k == result['delta_hat_e_k']
     assert expected_delta_hat_s_k == result['delta_hat_s_k']
-    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_su']
+    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_sl']
     assert env.queue.queue['e_k'][0] == 3
 
 def test_exog_info_fn_3(initial_state, seed):
@@ -1105,7 +1106,7 @@ def test_exog_info_fn_3(initial_state, seed):
 
     assert expected_delta_hat_e_k == result['delta_hat_e_k']
     assert expected_delta_hat_s_k == result['delta_hat_s_k']
-    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_sl']
+    assert env.queue.queue['tau_k'][0] == env.initial_state['eta_su']
     assert env.queue.queue['e_k'][0] == 2
 
 def test_step_1(initial_state, seed):
@@ -1129,6 +1130,7 @@ def test_step_1(initial_state, seed):
                 'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
                 'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
+    decision = np.array([10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     # Set the state S_k
     env.state = {'tau_k' : 0, 'e_k' : 1, \
@@ -1168,15 +1170,16 @@ def test_step_1(initial_state, seed):
         'rho_e_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0,}, \
         'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
+    expected_state = np.array([3, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
     # Call the step function
     next_state, reward, terminated, truncated, info = env.step(decision)
 
-    assert expected_state == next_state
+    assert np.array_equal(expected_state, next_state)
     assert expected_reward == reward
     assert terminated is True
     assert truncated is False
-    assert info == {}
+    assert info == {'action' : 'valid'}
 
 def test_step_2(initial_state, seed):
     """Test the step method when the action is not feasible.
@@ -1201,6 +1204,7 @@ def test_step_2(initial_state, seed):
                 'x_sl_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0},
                 'x_su_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
+    decision = np.array([10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     # Set the state S_k
     env.state = {'tau_k' : 0, 'e_k' : 1, \
@@ -1240,12 +1244,13 @@ def test_step_2(initial_state, seed):
         'rho_e_k' : {'white' : 0, 'green' : 10, 'yellow' : 0, 'red' : 0}, \
         'rho_s_k' : {'white' : 0, 'green' : 0, 'yellow' : 0, 'red' : 0}
     }
+    expected_state = np.array([0, 1, 0, 10, 0, 0, 0, 0, 0, 0])
 
     # Call the step function
     next_state, reward, terminated, truncated, info = env.step(decision)
 
-    assert expected_state == next_state
+    assert np.array_equal(expected_state, next_state)
     assert expected_reward == reward
     assert not terminated
     assert truncated is False
-    assert info == {}    
+    assert info == {'action' : 'invalid'}

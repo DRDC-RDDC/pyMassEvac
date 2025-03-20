@@ -1,4 +1,5 @@
-"""
+"""Python Mass Evacuation model.
+
 This module provides a custom gymnasium environment that implements the 
 multi-domain mass evacuation problem described in Rempel (2024). Specifically,
 the environment models the transport of individuals from an evacuation site 
