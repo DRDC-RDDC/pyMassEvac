@@ -32,7 +32,7 @@ Assuming decision policies are selected, **pyMassEvac** may be used to explore t
 
 An operation's initial state is defined by 11 parameters. These are defined as follows:
 
-* $m^e$: Vector of mean time (hours) for an individual's medical condition to worsen and transition from a triage category $t \in \mathcal{T} \setminus \{b\}$ to the next lower triage category $t^\prime \in \mathcal{T} \setminus \{w\}$ at the evacuation site, i.e., $m^e_w$ is the mean transition time from the white ($w$) to green ($g$) tag category. The set of triage categories is given as $\mathcal{T} = \{w, g, y, r, b\}$; 
+* $m^e$: Vector of mean time (hours) for an individual's medical condition to worsen and transition from a triage category $t \\in \\mathcal{T} \\setminus \\{b\\}$ to the next lower triage category $t^\\prime \\in \\mathcal{T} \\setminus \\{w\\}$ at the evacuation site, i.e., $m^e_w$ is the mean transition time from the white ($w$) to green ($g$) tag category. The set of triage categories is given as $\\mathcal{T} = \\{w, g, y, r, b\\}$; 
 * $m^s$: Vector of mean time (hours) for an individual's medical condition to improve and transition from a triage category $t \in \mathcal{T} \setminus \{w, b\}$ to the next higher triage category $t^\prime \in \mathcal{T} \setminus \{r, b\}$ while receiving medical care, i.e., $m^s_r$ is the mean transition time from the red ($r$) to yellow ($y$) tag category;
 * $c^h$: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
 * $c^s$: Total capacity for individuals to receive medical care, such as onboard a ship;
