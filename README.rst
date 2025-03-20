@@ -1,9 +1,7 @@
-# gym_mass_evacuation
+pyMassEvac
+##########
 
-**gym_mass_evacuation** is a Python library that aims to study a mass evacuation scenario
-in which a large number of ind
-
-Gymnasium environment to study a mass evacuation scenario
+**pyMassEvac** is a Python library that aims to study single- and multi-domain mass evacuation operations.
 
 Installation
 ############

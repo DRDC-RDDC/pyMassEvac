@@ -4,9 +4,9 @@ with open("README.rst") as readme_file:
     readme = readme_file.read()
 
 setup(
-    name="gym_mass_evacuation",
+    name="pyMassEvac",
     version="0.0.1",
-    description="A custom gymnasium environment for studying a multi-domain mass evacuation scenario.",
+    description="A custom gymnasium environment for studying multi-domain mass evacuation operations.",
     long_description=readme,
     long_description_content_type="text/x-rst",
     url="",

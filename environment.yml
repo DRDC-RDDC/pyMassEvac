@@ -1,4 +1,4 @@
-name: gym-mass_evacuation
+name: pyMassEvac
 channels:
   - conda-forge
   - defaults
@@ -10,7 +10,6 @@ dependencies:
   - numpy
   - matplotlib
   - gymnasium
-  - stable-baselines3
   - pytest
   - pytest-cov
   - tdqm
