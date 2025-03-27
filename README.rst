@@ -1,3 +1,8 @@
+|GitHub license|
+
+.. |GitHub license| image:: https://img.shields.io/github/license/mrempel/StrapDown.js.svg
+   :target: https://github.com/mremepl/pyMassEvac/LICENSE
+
 ==========
 pyMassEvac
 ==========
