@@ -27,7 +27,8 @@ mass evacuation operations in which:
 
 - the individuals to be evacuated are at a remote location, such as in
 the Arctic, where access to immediate medical care is limited or non-existent; 
-- each individual's medical condition may change over time, perhaps 
+- each individual's medical condition (modelled as a medical triage system) 
+may change over time, perhaps 
 due to environmental conditions, injury, or care being provided; and 
 - the individuals must be transported from the evacuation site to a Forward 
 Operating Location (FOL).
@@ -89,24 +90,23 @@ are described in @rempel2021a, @rempel2023a, and @rempel2024a.
 
 The significant decrease in Arctic sea ice in recent decades has resulted in 
 increased activity in the Arctic across a range of sectors, such as oil and 
-gas, mining, fishing, and tourism. With respect to tourism and the potential 
-increase in the number of Arctic cruise ships, Arctic nations are concerned 
-with both the potential increase in the number of Search and Rescue (SAR) 
+gas, mining, fishing, and tourism. With respect to tourism, Arctic nations are concerned 
+with the potential increase in the number of Search and Rescue (SAR) 
 incidents that may occur and the increased size of those incidents in terms 
 of the number of individuals in need of evacuation. This is evidenced by 
 recent exercises that have been conducted, such as the SARex series in 
 Norway [@solberg2016a; @solberg2018a], a table-top exercise including the 
 United States, Canada, and the cruise ship industry [@mcnutt2016a], and 
-NANOOK-TATIGIT 21 by the Canadian Armed Forces [@nationaldefence2021a].
+NANOOK-TATIGIT 21 exercise led by the Canadian Armed Forces [@nationaldefence2021a].
 
-While software exists to support planning for and executing evacuation 
-operations, this software either requires a paid license [@sarresponse; 
-@massevac], focuses on search planning [@sarops], or addressed specific 
+While software exists to support planning for and the execution of evacuation 
+operations, it typically either requires a paid license [@sarresponse; 
+@massevac], focuses on search planning [@sarops], or addresses specific 
 situations such as wildfires [@guman2024a]. With this in mind, `pyMassEvac` 
 aims to provide an open source software package that enables researchers 
-to both assess the impact of strategic and operational decisions
-made prior to an evacuation operation occurring, as well as the impact of
-tactical decisions made within the operation itself. 
+to (within the context described above) both assess the impact of strategic 
+and operational decisions made prior to an evacuation operation occurring, 
+as well as the impact of tactical decisions made within the operation itself. 
 
 # Features
 
@@ -131,7 +131,7 @@ i.e., $m^s_r$ is the mean transition time from the red ($r$) to yellow ($y$) tag
 - $c^h$: Total capacity for individuals onboard a transport vehicle, such as a helicopter;
 - $c^s$: Total capacity for individuals to receive medical care, such as onboard a ship;
 - $\delta^h$: Vector of capacity consumed by each triage category $t \in 
-\mathcal{T} \setminus \{b\}$ onboard a transport vehicle. Individual in the black ($b$) tag
+\mathcal{T} \setminus \{b\}$ onboard a transport vehicle. Individuals in the black ($b$) tag
 category are not transported as they are deceased and are assumed to be 
 recovered at the end of the rescue operation;
 - $\delta^s$: Vector of capacity consumed by each triage category $t \in 
@@ -189,7 +189,7 @@ the medical facility whose medical condition has improved such that they
 are assigned a white ($w$) tag. This policy may be used for **Decision policy 3**.
 
 In addition, a `do_nothing` policy is provided to model situations in which a
-decision is to be delayed or a model the lack of transport of medical care.
+decision is to be delayed or to model the lack of transport or medical care.
 
 The tutorial found in `tutorial\tutorial.ipynb` demonstrates how to use
 these decision policies. Specifically, it uses the 
@@ -202,13 +202,16 @@ these decision policies. Specifically, it uses the
 `pyMassEvac` is implemented as a custom Gymnasium environment [@towers2024a].
 An example of its use as an environment with fixed decision policies is 
 provided in `tutorial\tutorial.ipynb`. `pyMassEvac` may also be used in 
-combination with a reinforcement learning to seek optimal, or at least 
-near-optimal, decision policies. Among the many considerations that must be 
-made when selecting or designing a learning algorithm for this environment 
-is that the set of valid actions are dependent on both the state variable 
-$S_k$ and the parameters defined in the initial state $S_0$---see Section 
-4.1 of @rempel2024a. Thus, when using a reinforcement learning algorithm a 
-form of invalid action masking [@huang2022a; @hou2023a] must be implemented.
+combination with a reinforcement learning or approximate dynamic programming
+algorithm to seek optimal, or at least near-optimal, decision policies. 
+Among the many considerations that must be made when selecting or designing 
+a learning algorithm for this environment is that the set of valid actions 
+are dependent on both the state variable $S_k$ and the parameters defined 
+in the initial state $S_0$---see Section 4.1 of @rempel2024a. The `step` 
+function takes this into account and only steps the forward to the next 
+event if the selected action is valid. However, when using a reinforcement 
+learning algorithm a form of invalid action masking [@huang2022a; @hou2023a] 
+should also be considered.
 
 # Acknowledgements
 

@@ -137,6 +137,112 @@ def test_close(initial_state, seed):
 
     assert expected_result == env.close()
 
+def test_action_ndarray_to_dict(initial_state, seed):
+    """Test the action_ndarray_do_dict method.
+    
+    Test the action_ndarray_to_dict method. This method converts an action
+    that is input as an ndarray into a dictionary.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)    
+
+    action = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+
+    expected_result = {'x_hl_k' : {'white' : action[0],
+                                   'green' : action[1],
+                                   'yellow' : action[2],
+                                   'red' : action[3]},
+                        'x_sl_k' : {'white' : action[4],
+                                    'green' : action[5],
+                                    'yellow' : action[6],
+                                    'red' : action[7]},
+                        'x_su_k' : {'white' : action[8],
+                                    'green' : action[9],
+                                    'yellow' : action[10],
+                                    'red' : action[11]
+                                    }
+                        }
+
+    assert np.array_equal(expected_result, env.action_ndarray_to_dict(action))
+
+def test_action_dict_to_ndarray(initial_state, seed):
+    """Test the action_ndarray_do_dict method.
+    
+    Test the action_ndarray_to_dict method. This method converts an action
+    that is input as an ndarray into a dictionary.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)  
+
+    action = {'x_hl_k' : {'white' : 1,
+                                   'green' : 2,
+                                   'yellow' : 3,
+                                   'red' : 4},
+                        'x_sl_k' : {'white' : 5,
+                                    'green' : 6,
+                                    'yellow' : 7,
+                                    'red' : 8},
+                        'x_su_k' : {'white' : 9,
+                                    'green' : 10,
+                                    'yellow' : 11,
+                                    'red' : 12
+                                    }
+                        }
+
+    expected_result = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+
+    assert np.array_equal(expected_result, env.action_dict_to_ndarray(action))
+
+def test_observation_ndarray_to_dict(initial_state, seed):
+    """Test the observation_ndarray_to_dict method.
+
+    Test the observation_ndarray_to_dict method. This method returns 
+    the current state S_k.
+
+    Parameters
+    ----------
+    initial_state : dict
+        Initial state as defined in the pytest.fixture.
+    seed : int
+        Seed as defined in the pytest.fixture.   
+    """
+
+    env = mass_evacuation.MassEvacuation(initial_state = initial_state, \
+                                         seed = seed, default_rng = False)
+
+    observation = np.array([24, 1, 1, 2, 3, 4, 5, 6, 7, 8])
+
+    expected_result = {'tau_k' : 24,
+                       'e_k' : 1,
+                       'rho_e_k' : {'white' : 1,
+                                    'green' : 2,
+                                    'yellow' : 3,
+                                    'red' : 4
+                                    },
+                        'rho_s_k' : {'white' : 5,
+                                     'green' : 6,
+                                     'yellow' : 7,
+                                     'red' : 8}
+                                    }
+    assert np.array_equal(expected_result, \
+                          env.observation_ndarray_to_dict(observation))
+
 def test_observation(initial_state, seed):
     """Test the observation method.
 
