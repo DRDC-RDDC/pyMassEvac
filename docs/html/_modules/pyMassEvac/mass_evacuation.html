@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyMassEvac.mass_evacuation &#8212; pyMassEvac  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b3523f8e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=cb25574f" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pyMassEvac.mass_evacuation</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Python Mass Evacuation model.</span>
+
+<span class="sd">This module provides a custom gymnasium environment that implements the </span>
+<span class="sd">multi-domain mass evacuation problem described in Rempel (2024). Specifically,</span>
+<span class="sd">the environment models the transport of individuals from an evacuation site </span>
+<span class="sd">via one or more vehicles to a forward operating location, while one or more </span>
+<span class="sd">assets (such as a ship) remain at the site with the aim to provide medical </span>
+<span class="sd">assistance. Given a limited number of transport vehicles and medical assets, </span>
+<span class="sd">each with their own limited capacity, and that the medical condition of </span>
+<span class="sd">individuals is changing over time, the objective is to transport as many </span>
+<span class="sd">individuals alive from the evacuation site as possible.</span>
+
+<span class="sd">Within this scenario there are three types of decisions that are to be made: </span>
+
+<span class="sd">(i) which individuals waiting at the evacuation site to be loaded onto a </span>
+<span class="sd">vehicle for transportation to a forward operating location; </span>
+<span class="sd">(ii) which individuals are to be loaded from the evacuation site onto an asset</span>
+<span class="sd">(such as ship) in order to receive medical attention; and </span>
+<span class="sd">(iii) which individuals are to be unloaded from an asset (such as as ship) and </span>
+<span class="sd">returned to the evacuation site so that others may access the asset and receive </span>
+<span class="sd">medical attention. </span>
+
+<span class="sd">Between these decisions being made, the individuals&#39; medical conditions</span>
+<span class="sd">change due to a variety of factors. While at the evacuation site, an </span>
+<span class="sd">individual&#39;s condition will deteriorate; while receiving medical attention their</span>
+<span class="sd">condition will improve. Once loaded onto a transport vehicle, their condition</span>
+<span class="sd">is assumed to remain stable, and they are considered saved. Given the</span>
+<span class="sd">decisions that are to be made and the dynamics of the environment, as stated</span>
+<span class="sd">above the objective is to save the greatest number of lives possible. </span>
+<span class="sd">Specifically, this is formulated as the maximization of the expected</span>
+<span class="sd">value of the sum of the number of individuals transported to a forward </span>
+<span class="sd">operating location - see equation (9) in Rempel (2024). The question then </span>
+<span class="sd">becomes, what are good decision policies that maximize this expected value?</span>
+
+<span class="sd">Throughout this module, the documentation will refer to Rempel (2024). For</span>
+<span class="sd">a full description of an example scenario, see Section 3. For a description of </span>
+<span class="sd">the sequential decision problem that is implemented in this gymnasium </span>
+<span class="sd">enviornment, see Section 4. In addition, the notation used throughout the code </span>
+<span class="sd">follows that laid out in Powell (2022), Chapter 9.</span>
+
+<span class="sd">The references for the Rempel (2024) and Powell (2022) are as follows.</span>
+
+<span class="sd">M. Rempel, &quot;Modelling a major maritime disaster scenario using the   </span>
+<span class="sd">universal modelling framework for sequential decisions&quot;, Safety </span>
+<span class="sd">Science, vol. 171, 106379, 2024.</span>
+
+<span class="sd">W. Powell, &quot;Reinforcemnt learning and stochastic optimization: A</span>
+<span class="sd">unified framework for sequential decisions&quot;, Wiley, Hoboken, New, </span>
+<span class="sd">Jersey, 2022.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">gymnasium</span> <span class="k">as</span> <span class="nn">gym</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">pyMassEvac.mutable_priority_queue</span> <span class="kn">import</span> <span class="n">MutablePriorityQueue</span>
+
+<div class="viewcode-block" id="MassEvacuation">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation">[docs]</a>
+<span class="k">class</span> <span class="nc">MassEvacuation</span><span class="p">(</span><span class="n">gym</span><span class="o">.</span><span class="n">Env</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A gymnasium environment of a multi-domain mass evacuation scenario.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_state</span><span class="p">,</span> \
+                 <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">default_rng</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a new MassEvacuation gymnasium environment object.</span>
+
+<span class="sd">        Creates a new MassEvacuation gymnasium environment object. The </span>
+<span class="sd">        object contains the: </span>
+<span class="sd">        </span>
+<span class="sd">        - initial state S_0;</span>
+<span class="sd">        - state S_k, where k is an event index; </span>
+<span class="sd">        - observation space; </span>
+<span class="sd">        - action space; </span>
+<span class="sd">        - random number generator object; and </span>
+<span class="sd">        - queue that stores the event arrival and inter-arrival times. </span>
+<span class="sd">        </span>
+<span class="sd">        In addition, the initial transition times of individuals between </span>
+<span class="sd">        medical triage states are computed. This information is deemed </span>
+<span class="sd">        exogenous and is not knowable by the decision maker when deciding who </span>
+<span class="sd">        to load on the transport vehicles, medical assets, or unload from </span>
+<span class="sd">        medical assets. Copies of these two data frames are created and used in </span>
+<span class="sd">        the reset method.</span>
+
+<span class="sd">        Note: In Rempel (2024), `seed` was set to 20180529 and `default_rng`</span>
+<span class="sd">        was set to False.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        initial_state : dict</span>
+<span class="sd">            Initial state S_0 of the environment. See Table 2 and equation (1)</span>
+<span class="sd">            in Rempel (2024). Two additional initial parameters are added: </span>
+<span class="sd">            `initial_helo_arrival&#39; and `initial_ship_arrival&#39;</span>
+<span class="sd">            to better follow Powell&#39;s modelling framework.</span>
+<span class="sd">        seed : int, optional</span>
+<span class="sd">            Random seed, by default None.</span>
+<span class="sd">        default_rng : bool, optional</span>
+<span class="sd">            True if the numpy default_rng is to be used, False if RandomState </span>
+<span class="sd">            is to be used, by default True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">MassEvacuation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># Set the render mode to None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Check if the initial state contains the required keys in the</span>
+        <span class="c1"># dictionary.</span>
+        <span class="n">required_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;m_e&#39;</span><span class="p">,</span> <span class="s1">&#39;m_s&#39;</span><span class="p">,</span> <span class="s1">&#39;c_h&#39;</span><span class="p">,</span> <span class="s1">&#39;c_s&#39;</span><span class="p">,</span> <span class="s1">&#39;delta_h&#39;</span><span class="p">,</span> <span class="s1">&#39;delta_s&#39;</span><span class="p">,</span> \
+                         <span class="s1">&#39;eta_h&#39;</span><span class="p">,</span> <span class="s1">&#39;eta_sl&#39;</span><span class="p">,</span> <span class="s1">&#39;eta_su&#39;</span><span class="p">,</span> <span class="s1">&#39;tau_k&#39;</span><span class="p">,</span> <span class="s1">&#39;e_k&#39;</span><span class="p">,</span> \
+                            <span class="s1">&#39;rho_e_k&#39;</span><span class="p">,</span> <span class="s1">&#39;rho_s_k&#39;</span><span class="p">,</span> <span class="s1">&#39;initial_helo_arrival&#39;</span><span class="p">,</span> \
+                                <span class="s1">&#39;initial_ship_arrival&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">required_keys</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">initial_state</span><span class="p">):</span>
+
+            <span class="c1"># Define the initial state S_0 - see Table 5 in Rempel (2024).</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span> <span class="o">=</span> <span class="n">initial_state</span>
+
+            <span class="c1"># Define the random number generator.</span>
+            <span class="k">if</span> <span class="n">default_rng</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+            <span class="c1"># Initialize the priority queue. Note that the state variable does</span>
+            <span class="c1"># not have access to this queue.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">MutablePriorityQueue</span><span class="p">()</span>
+
+            <span class="c1"># Add the arrival of the helicopters and ships to the event queue.</span>
+            <span class="c1"># The arrival times defined in the initial state S_0 are relative</span>
+            <span class="c1"># to the arrival of the individuals at the evacuation site.</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_helo_arrival&#39;</span><span class="p">])):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_helo_arrival&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_ship_arrival&#39;</span><span class="p">])):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_ship_arrival&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="c1"># Update the queue such that the arrival times of the events are</span>
+            <span class="c1"># relative to each previous event.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">setRelative</span><span class="p">()</span>
+
+            <span class="c1"># Define the initial values of the state variable S_k.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;tau_k&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;e_k&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;rho_e_k&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;rho_s_k&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">]</span>
+            <span class="p">}</span>
+
+            <span class="c1"># Define the observation space - this is the state space of the</span>
+            <span class="c1"># environment. See the definition of the state variable</span>
+            <span class="c1"># in equation (1). Note: the upper limit of time the environment</span>
+            <span class="c1"># is allowed to execute is 168 hours, or seven days.</span>
+            <span class="n">lower_limit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">upper_limit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">168</span><span class="p">,</span>
+                                    <span class="mi">3</span><span class="p">,</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                                    <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="p">])</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span> <span class="o">=</span> <span class="n">lower_limit</span><span class="p">,</span>
+                                               <span class="n">high</span> <span class="o">=</span> <span class="n">upper_limit</span><span class="p">,</span>
+                                               <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+            <span class="c1"># Define the action space - this is the set of decisions that can</span>
+            <span class="c1"># be taken. See the definition in section 4.1.2. Note that is</span>
+            <span class="c1"># definition does not include the constraints on the decisions;</span>
+            <span class="c1"># those constraints (equations (2), (3), (5), and (6) would need to </span>
+            <span class="c1"># # be either in the decision policies, step function, or learning</span>
+            <span class="c1"># algorithm.</span>
+
+            <span class="c1"># Define an array of upper limits on actions - there are 12 actions</span>
+            <span class="c1"># in total, where the first four are &#39;x_hl_k&#39;, the second four are</span>
+            <span class="c1"># &#39;x_sl_k&#39;, and the last four are &#39;x_su_k&#39;.</span>
+            <span class="n">lower_limit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">upper_limit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_h&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                                 <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_h&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                      <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_h&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                                 <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_h&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                      <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_h&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                                 <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_h&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_h&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_h&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="p">])</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span> <span class="o">=</span> <span class="n">lower_limit</span><span class="p">,</span>
+                                               <span class="n">high</span> <span class="o">=</span> <span class="n">upper_limit</span><span class="p">,</span>
+                                               <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+            <span class="c1"># Create a data frame that stores the exogenous medical transition</span>
+            <span class="c1"># times for all individuals that are at the evacuation site or</span>
+            <span class="c1"># onboard the medical asset. Note that this information is not part </span>
+            <span class="c1"># of theobservation, but is part of the enivronment.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> \
+                                                        <span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;category&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;white&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;green&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;yellow&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;red&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;black&#39;</span><span class="p">])</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> \
+                                                        <span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;category&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;white&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;green&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;yellow&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;red&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;black&#39;</span><span class="p">])</span>
+
+            <span class="c1"># Add the initial individuals to the self.exog_med_transitions_evac</span>
+            <span class="c1"># data frame and randomly select their transition times between</span>
+            <span class="c1"># medical triage categories.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_individuals</span><span class="p">(</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">],</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Make a copy of each exogenous data frame. These are used in the</span>
+            <span class="c1"># reset method to set the environment to its initial state.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_med_transitions_evac</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_med_transitions_ship</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="p">)</span>
+
+            <span class="k">return</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Keys &quot;</span><span class="si">{</span><span class="n">required_keys</span><span class="si">}</span><span class="s1">&quot; does not exist&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MassEvacuation.action_ndarray_to_dict">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.action_ndarray_to_dict">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_ndarray_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the action space numpy array to a dict.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : ndarray</span>
+<span class="sd">            A numpy array that contains 12 elements that describes an</span>
+<span class="sd">            action. The elements are separated into three groups by</span>
+<span class="sd">            their action - `x_hl_k`, `x_sl_k`, and `x_su_k` - where</span>
+<span class="sd">            each group contains four elements.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        action_dict : dict</span>
+<span class="sd">            The action converted to a dictionary that contains three</span>
+<span class="sd">            key-value pairs: `x_hl_k`, `x_sl_k`, and `x_su_k`. The value</span>
+<span class="sd">            for each key is itself a dictionary that contains the selected</span>
+<span class="sd">            actions for the `white`, `green`, `yellow`, and `red` triage</span>
+<span class="sd">            categories.      </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">action_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x_hl_k&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                   <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                   <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">3</span><span class="p">]},</span>
+                        <span class="s1">&#39;x_sl_k&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                                    <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                                    <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+                                    <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">7</span><span class="p">]},</span>
+                        <span class="s1">&#39;x_su_k&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span>
+                                    <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">9</span><span class="p">],</span>
+                                    <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span>
+                                    <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="n">action</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+                                    <span class="p">}</span>
+                        <span class="p">}</span>
+
+
+        <span class="k">return</span> <span class="n">action_dict</span></div>
+
+
+<div class="viewcode-block" id="MassEvacuation.action_dict_to_ndarray">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.action_dict_to_ndarray">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_dict_to_ndarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the action space dict to a numpy array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            The action represented by a dictionary that contains three</span>
+<span class="sd">            key-value pairs: `x_hl_k`, `x_sl_k`, and `x_su_k`. The value</span>
+<span class="sd">            for each key is itself a dictionary that contains the selected</span>
+<span class="sd">            actions for the `white`, `green`, `yellow`, and `red` triage</span>
+<span class="sd">            categories.      </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        action_ndarray : ndarray</span>
+<span class="sd">            A numpy array that contains 12 elements that describe an</span>
+<span class="sd">            action. The elements are separated into three groups by</span>
+<span class="sd">            their action - `x_hl_k`, `x_sl_k`, and `x_su_k` - where</span>
+<span class="sd">            each group contains four elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">action_ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                   <span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">]])</span>
+
+        <span class="k">return</span> <span class="n">action_ndarray</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_compute_reward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the contribution (or reward) for taking an action.</span>
+
+<span class="sd">        The contribution function C(S_k, x_k) is the immediate reward </span>
+<span class="sd">        received when taking an action. See equation (8) in Rempel (2024).</span>
+<span class="sd">        A contribution (or reward) is only recieved when a decision is made</span>
+<span class="sd">        to load a transport vehicle, i.e., `self.state[&#39;e_k&#39;]` = 1, and the </span>
+<span class="sd">        reward received is equal to the number of individuals loaded onto the</span>
+<span class="sd">        transport vehicle.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            A dict of three actions: (i) load a helicopter `x_hl_k`; </span>
+<span class="sd">            (ii) load a ship `x_sl_k`; and (iii) unload a ship `x_su_k`. </span>
+<span class="sd">            The value of each of these keys is itself a dict with key-value </span>
+<span class="sd">            pairs that represent the number of individuals selected from the </span>
+<span class="sd">            `white`, `green`, `yellow`, and `red` triage categories. Note that</span>
+<span class="sd">            individuals in the `black` triage category (deceased) are not </span>
+<span class="sd">            loaded.</span>
+
+<span class="sd">            For example, `action[&#39;x_hl_k&#39;] = {&#39;white&#39; : 5, &#39;green&#39; : 2,</span>
+<span class="sd">            &#39;yellow&#39; : 1, &#39;red&#39; : 0}`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        reward : int</span>
+<span class="sd">            The contribution (or reward) received when loading a transport</span>
+<span class="sd">            vehicle, i.e., the number of individuals loaded; zero</span>
+<span class="sd">            otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Define the default reward</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Define the contribution function - see equation (8).</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="c1"># check if action is does not violate the total capacity</span>
+            <span class="c1"># constraint of the helicopter - see equation (2) and (3)</span>
+
+            <span class="n">equation_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> \
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_h&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="o">&lt;=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_h&#39;</span><span class="p">]</span>
+
+            <span class="n">equation_3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">&lt;=</span> \
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">equation_2</span><span class="p">,</span> <span class="n">equation_3</span><span class="p">]):</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+        <span class="k">return</span> <span class="n">reward</span>
+
+<div class="viewcode-block" id="MassEvacuation.observation_ndarray_to_dict">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.observation_ndarray_to_dict">[docs]</a>
+    <span class="k">def</span> <span class="nf">observation_ndarray_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observation</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert an observation from the environment to a dict.</span>
+
+<span class="sd">        Convert an observation that is returned from the step function</span>
+<span class="sd">        into a dict. The observation, that is the current state S_k,</span>
+<span class="sd">        consists of four items: tau_k (the current time), e_k, (the</span>
+<span class="sd">        next event to occur), rho_e_k (the number of individuals in each</span>
+<span class="sd">        triage state at the evacuation site), and rho_s_k (the number of</span>
+<span class="sd">        individuals at the medical asset, such as a ship).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        observation : ndarray</span>
+<span class="sd">            A numpy array that contains 10 elements that describe the</span>
+<span class="sd">            current state. The elements are: </span>
+<span class="sd">            </span>
+<span class="sd">            - tau_k: the current time, an single int</span>
+<span class="sd">            - e_k: the next event to occur, a single int </span>
+<span class="sd">            - rho_e_k: the number of individuals in each triage state at the </span>
+<span class="sd">            evacuation site, four ints; and </span>
+<span class="sd">            - rho_s_k: the number of individuals at the medical asset, four ints.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The current state of the environment S_k as defined in equation (1) </span>
+<span class="sd">            of Rempel (2024). The state consists of four components: the kth </span>
+<span class="sd">            event `e_k`; the current system time `tau_k`; `rho_e_k`, the number </span>
+<span class="sd">            of individuals in each triage category at the evacuation site;</span>
+<span class="sd">            and `rho_s_k`, the number of individuals in each triage category</span>
+<span class="sd">            onboard the ship. Both `rho_e_k` and `rho_s_k` are dicts with keys:</span>
+<span class="sd">            `white`, `green`, `yellow`, and `red`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">observation_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;tau_k&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                       <span class="s1">&#39;e_k&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                       <span class="s1">&#39;rho_e_k&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                    <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                    <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                                    <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+                                    <span class="p">},</span>
+                        <span class="s1">&#39;rho_s_k&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+                                     <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+                                     <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span>
+                                     <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="mi">9</span><span class="p">]}</span>
+                                    <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">observation_dict</span></div>
+
+
+<div class="viewcode-block" id="MassEvacuation.observation">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.observation">[docs]</a>
+    <span class="k">def</span> <span class="nf">observation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the current state S_k.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The current state of the environment S_k as defined in equation (1) </span>
+<span class="sd">            of Rempel (2024). The state consists of four components: the kth </span>
+<span class="sd">            event `e_k`; the current system time `tau_k`; `rho_e_k`, the number </span>
+<span class="sd">            of individuals in each triage category at the evacuation site;</span>
+<span class="sd">            and `rho_s_k`, the number of individuals in each triage category</span>
+<span class="sd">            onboard the ship. Both `rho_e_k` and `rho_s_k` are dicts with keys:</span>
+<span class="sd">            `white`, `green`, `yellow`, and `red`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">state_ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;tau_k&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">]</span>
+                                  <span class="p">]</span>
+                                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">state_ndarray</span></div>
+
+
+<div class="viewcode-block" id="MassEvacuation.reset">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.reset">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">options</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the environment.</span>
+
+<span class="sd">        Reset the environment to its initial state. The reset can occur in </span>
+<span class="sd">        either one of two ways. First, such that a single scenario is used, </span>
+<span class="sd">        (`options[&#39;single_scenario&#39;] = True`) as in Rempel (2024); or second, </span>
+<span class="sd">        such that a different randomly selected scenario is initiated. The </span>
+<span class="sd">        difference between these two options is the sampled inter-transition </span>
+<span class="sd">        times between medical categories for individuals. When </span>
+<span class="sd">        `options[&#39;single_scenario&#39;] = True`, the times generated in the </span>
+<span class="sd">        `__init__` method are used - `self.initial_med_transitions_evac` and</span>
+<span class="sd">        `self.initial_med_transitions_ship`. When `options[&#39;single_sceanrio&#39;] = False`, new times are sampled.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        seed : int, optional</span>
+<span class="sd">            Random seed, by default `None`. Not used in this implementation.</span>
+<span class="sd">        options : dict</span>
+<span class="sd">            A dict that consists of one option that is used to reset the </span>
+<span class="sd">            environment: `single_scenario`. </span>
+<span class="sd">            </span>
+<span class="sd">            If `single_scenario` is `True`, then the sampled medical category </span>
+<span class="sd">            transition times given in the __init__ function are used to reset </span>
+<span class="sd">            the environment; if `False`, new transition times are sampled;</span>
+<span class="sd">            default is `False`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        observation : dict</span>
+<span class="sd">            Initial state S_k of the reset environment. The state consists of </span>
+<span class="sd">            four components: the kth event `e_k`; the current system time </span>
+<span class="sd">            `tau_k`; `rho_e_k`, the number of individuals in each triage </span>
+<span class="sd">            category at the evacuation site; and `rho_s_k`, the number of </span>
+<span class="sd">            individuals in each triage category onboard the ship. Both </span>
+<span class="sd">            `rho_e_k` and `rho_s_k` are dicts with keys: `white`, `green`, </span>
+<span class="sd">            `yellow`, and `red`.</span>
+<span class="sd">        info : None</span>
+<span class="sd">            Required by gymnasium, but not used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get the `single_sceanrio` option; default is False</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">single_scenario</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">single_scenario</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;single_scenario&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Reset the state to its original values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;tau_k&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;e_k&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;rho_e_k&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;rho_s_k&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">]</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Reset the queue and add the arrival time for the helicopters and </span>
+        <span class="c1"># ships</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">MutablePriorityQueue</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_helo_arrival&#39;</span><span class="p">])):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_helo_arrival&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_ship_arrival&#39;</span><span class="p">])):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;initial_ship_arrival&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Set the arrival times in the queue as relative</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">setRelative</span><span class="p">()</span>
+
+        <span class="c1"># If a single sceanrio is selected, reset the individual&#39;s medical</span>
+        <span class="c1"># transition times to those generated in the __init__ method.</span>
+        <span class="k">if</span> <span class="n">single_scenario</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_med_transitions_evac</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_med_transitions_ship</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># Multi-sceanrio in terms of the sampled transition times, not the</span>
+            <span class="c1"># initial number of individuals in each triage category at the</span>
+            <span class="c1"># evacuation site.</span>
+
+            <span class="c1"># Reset the exogenous information that describes transitions of the</span>
+            <span class="c1"># individuals between medical triage levels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Add the original number of individuals to the evacution site</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_individuals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">],</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+        <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation</span><span class="p">()</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">info</span></div>
+
+
+<div class="viewcode-block" id="MassEvacuation.step">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.step">[docs]</a>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transition the environment to the next state.</span>
+
+<span class="sd">        This method executes three components of the sequential decision </span>
+<span class="sd">        model. First, it computes the immediate reward that is received if </span>
+<span class="sd">        the decision taken was to load a transport vehicle, i.e., `action</span>
+<span class="sd">        [&#39;x_hl_k&#39;]`, see equation (8) in Rempel (2024). Second, it determines </span>
+<span class="sd">        the exogenous information `W_k_plus_one` that arrives after the </span>
+<span class="sd">        decision was made, see Section 4.1.3 of Rempel (2024). Third, it </span>
+<span class="sd">        implements the transition to the next state S_k_plus_one, see Section 4.</span>
+<span class="sd">        1.3 of Rempel (2024).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : ndarray</span>
+<span class="sd">            A numpy array of three actions: (i) load a transport vehicle </span>
+<span class="sd">            `x_hl_k`; (ii) load a medical asset `x_sl_k`; and (iii) unload a </span>
+<span class="sd">            medical asset `x_su_k`. The length of the array is 12 elements, </span>
+<span class="sd">            four for each action where each element represent the number of </span>
+<span class="sd">            individuals selected from the `white`, `green`, `yellow`, and `red` </span>
+<span class="sd">            triage categories. Note that individuals in the `black` triage </span>
+<span class="sd">            category (deceased) are not loaded onto a helicopter or ship.</span>
+
+<span class="sd">            For example, `action = [5, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]`</span>
+<span class="sd">            represents an action to load a tranport vehicle with 5 white tag</span>
+<span class="sd">            category individuals, 2 green tag, one yellow tag, and zero red tag.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        next_state : ndarray</span>
+<span class="sd">            The next state S_k_plus_one.</span>
+<span class="sd">        reward : int</span>
+<span class="sd">            The contribution received if the decision taken was to </span>
+<span class="sd">            load a helicopter, i.e., `x_hl_k`.</span>
+<span class="sd">        terminated : boolean</span>
+<span class="sd">            True if the environment was stopped, False otherwise.</span>
+<span class="sd">        truncated : boolean</span>
+<span class="sd">            True if the environment was stopped, False otherwise.</span>
+<span class="sd">        info : dict</span>
+<span class="sd">            Contains one key `action`, which indicated whether the </span>
+<span class="sd">            action provided was `valid` or `invalid`.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The step method calls the following non-public methods. </span>
+
+<span class="sd">            - Compute reward : `_compute_reward(action)`</span>
+<span class="sd">            - Get exogenous information : `_exog_info_fn(action)`</span>
+<span class="sd">            - Compute next state : `_transition_fn(action, exog_info)`    </span>
+
+<span class="sd">        In turn, `_exog_info_fn()` calls `_compute_delta_hat_k()`, which itself</span>
+<span class="sd">        calls several non-public methods. Note that the order the </span>
+<span class="sd">        non-public methods are called in `_compute_delta_hat_k()` are dependent </span>
+<span class="sd">        upon the state S_k.</span>
+
+<span class="sd">            - Update medical conditions : `_update_medical_condition(tau_hat_k, location)`</span>
+<span class="sd">            - Remove individuals : `_remove_individuals(action, location)`</span>
+<span class="sd">            - Add individuals : `_add_individuals(action, location)`</span>
+
+<span class="sd">        Note that `_remove_individuals()` and `_add_individuals()` take a </span>
+<span class="sd">        specific action, either `action[&#39;x_hl_k&#39;]`, `action[&#39;x_sl_k&#39;]`, or </span>
+<span class="sd">        `action[&#39;x_su_k&#39;]` as a parameter rather than a dict that contains all </span>
+<span class="sd">        three decisions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Convert action from ndarray to dict - this is done to make the code</span>
+        <span class="c1"># easier to read.</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_ndarray_to_dict</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+
+        <span class="n">next_state</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">terminated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">truncated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">equation_2</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">equation_3</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">equation_4</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">equation_5</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">equation_6</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># action masking - if the set of relevant equations (from equation (2)</span>
+        <span class="c1"># through equation (6)) to the current state are not valid given the</span>
+        <span class="c1"># action, then the action will be masked. If the relevant equations are</span>
+        <span class="c1"># valid, then the action will not be masked and the environemnt will</span>
+        <span class="c1"># step forward.</span>
+
+        <span class="c1"># check the conditions on the action to determine if it is legal</span>
+        <span class="c1"># given the current state - see equations (2) through (6) in</span>
+        <span class="c1"># Rempel (2024). This is a portion of how action masking is</span>
+        <span class="c1"># implemented in the step function.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">equation_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> \
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_h&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="o">&lt;=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_h&#39;</span><span class="p">]</span>
+
+            <span class="n">equation_3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">&lt;=</span> \
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">equation_4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">&lt;=</span> \
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+            <span class="n">equation_5</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> \
+                        <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="o">&lt;=</span> \
+                        <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;c_s&#39;</span><span class="p">]</span> <span class="o">-</span> \
+                        <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> \
+                        <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">equation_6</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">&lt;=</span> \
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+        <span class="c1"># If any of the equations are not true (not all), then the action</span>
+        <span class="c1"># is masked (i.e., the action is invalid and the environment does</span>
+        <span class="c1"># not step - exogenous information is not collected and the transtion</span>
+        <span class="c1"># function is not executed)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">equation_2</span><span class="p">,</span> <span class="n">equation_3</span><span class="p">,</span> <span class="n">equation_4</span><span class="p">,</span> <span class="n">equation_5</span><span class="p">,</span> \
+                   <span class="n">equation_6</span><span class="p">]):</span>
+
+            <span class="c1"># the action is invalid for the current state</span>
+
+            <span class="c1"># set the reward to zero</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="n">info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;action&#39;</span> <span class="p">:</span> <span class="s1">&#39;invalid&#39;</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># the action is valid</span>
+
+            <span class="c1"># compute the contribution function - see equation (8).</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_reward</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+
+            <span class="c1"># get the exgoenous information W_{t + 1}</span>
+            <span class="n">W_k_plus_one</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_info_fn</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+
+            <span class="c1"># Execute the transition function - see Section 4.1.3,</span>
+            <span class="c1"># S_k_plus_one = S^m(S_k, x_k, W_k_plus_one)</span>
+            <span class="n">next_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transition_fn</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">W_k_plus_one</span><span class="p">)</span>
+
+            <span class="n">info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;action&#39;</span> <span class="p">:</span> <span class="s1">&#39;valid&#39;</span><span class="p">}</span>
+
+        <span class="c1"># check if there are no individuals remaining at the evacuation site and onboard the ship</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">]</span> <span class="o">+</span> \
+              <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                    <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> \
+                        <span class="p">((</span><span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                          <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                            <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">terminated</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Convert the next_state as a dict to an ndarray</span>
+        <span class="n">next_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;tau_k&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;white&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;green&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;yellow&#39;</span><span class="p">],</span>
+                                <span class="n">next_state</span><span class="p">[</span><span class="s1">&#39;rho_s_k&#39;</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">]</span>
+                                <span class="p">]</span>
+                            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">terminated</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">info</span></div>
+
+
+<div class="viewcode-block" id="MassEvacuation.close">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.close">[docs]</a>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close the mass evacuation environment.</span>
+
+<span class="sd">        This method closes the mass evacuation environment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="MassEvacuation.render">
+<a class="viewcode-back" href="../../pyMassEvac.html#pyMassEvac.mass_evacuation.MassEvacuation.render">[docs]</a>
+    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the render frames as specified by render_mode </span>
+<span class="sd">        during the initialization of the environment.</span>
+
+<span class="sd">        No render is computed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_add_individuals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add individuals to a location&#39;s exogenous information data frame.</span>
+
+<span class="sd">        Given the action to add individuals to a location, either `ship`</span>
+<span class="sd">        (`action[&#39;x_sl_k&#39;]`) or `evac` (`action[&#39;x_su_k&#39;]`), create new rows in </span>
+<span class="sd">        the exogenous information data frame and sample the individuals&#39; </span>
+<span class="sd">        transition time between the allowed medical triage categories.</span>
+
+<span class="sd">        When adding individuals to the `ship`, the data frame </span>
+<span class="sd">        `self.exog_med_transitions_ship` is updated. When adding individuals</span>
+<span class="sd">        to the `evac` site, the data frame `self.exog_med_transitions_evac`</span>
+<span class="sd">        is updated.</span>
+
+<span class="sd">        Note: While `ship` is used in this code, the ship may represent any</span>
+<span class="sd">        asset that can provide medical assistance at the evacuation site.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            A dict that describes the number of individuals in each triage</span>
+<span class="sd">            category that are being moved to a location. When location is</span>
+<span class="sd">            `ship`, action should be `action[&#39;x_sl_k&#39;]`; when location is </span>
+<span class="sd">            `evac`, action should be `action[&#39;x_su_k&#39;]`.</span>
+<span class="sd">        location : str</span>
+<span class="sd">            Either `evac` or `ship`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Define the valid transitions between triage categories that are </span>
+        <span class="c1"># allowed to occur at the evacuatio location and onboard the ship.</span>
+        <span class="n">valid_transitions_evac</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;yellow&#39;</span><span class="p">,</span><span class="s1">&#39;red&#39;</span><span class="p">],</span> 
+                                  <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">],</span> 
+                                  <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">],</span> 
+                                  <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;red&#39;</span><span class="p">]}</span>
+
+        <span class="n">valid_transitions_ship</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                                  <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;green&#39;</span><span class="p">],</span> 
+                                  <span class="s1">&#39;yellow&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">],</span> 
+                                  <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">]}</span>
+
+        <span class="c1"># The action to add a person to a location is a dict, which</span>
+        <span class="c1"># contains the number of individuals per triage category.</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">action</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+
+                <span class="c1"># Set the individual&#39;s arrival time at the location</span>
+                <span class="c1"># and their triage category.</span>
+                <span class="n">individual</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">individual</span><span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;tau_k&#39;</span><span class="p">]</span>
+                <span class="n">individual</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
+
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;rho_e_k&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">individual</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+                <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;evac&#39;</span><span class="p">:</span>
+
+                    <span class="c1"># Sample the individual&#39;s transition times between medical</span>
+                    <span class="c1"># categories if the person is being moved from the ship to</span>
+                    <span class="c1"># the evacuation location or arriving at the evacuation site</span>
+                    <span class="c1"># at the start of the scenario. The times are the sampled</span>
+                    <span class="c1"># times that an individual departs from a given medical</span>
+                    <span class="c1"># condition.</span>
+
+                    <span class="n">last_category</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">valid_transitions_evac</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+
+                        <span class="k">if</span> <span class="n">last_category</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                            <span class="n">individual</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">individual</span><span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                                  <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;m_e&#39;</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">*</span> \
+                                    <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">individual</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">individual</span><span class="p">[</span><span class="n">last_category</span><span class="p">]</span> <span class="o">+</span> \
+                                <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;m_e&#39;</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">*</span> \
+                                    <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+                        <span class="n">last_category</span> <span class="o">=</span> <span class="n">l</span>
+
+                    <span class="c1"># add individual to the exogenous data frame</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span> <span class="o">=</span> \
+                            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span> <span class="o">=</span> \
+                            <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="p">,</span> \
+                            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">])],</span> \
+                            <span class="n">ignore_index</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;ship&#39;</span><span class="p">:</span>
+
+                    <span class="c1"># Sample the individual&#39;s transition times between medical</span>
+                    <span class="c1"># categories if the person is being moved from the ship to</span>
+                    <span class="c1"># the evacuation location.</span>
+                    <span class="n">last_category</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">valid_transitions_ship</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+
+                        <span class="k">if</span> <span class="n">last_category</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                            <span class="n">individual</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">individual</span><span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">]</span> <span class="o">+</span> \
+                                <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;m_s&#39;</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">*</span> \
+                                    <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">individual</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">individual</span><span class="p">[</span><span class="n">last_category</span><span class="p">]</span> <span class="o">+</span> \
+                                <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;m_s&#39;</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">*</span> \
+                                    <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+                        <span class="n">last_category</span> <span class="o">=</span> <span class="n">l</span>
+
+                    <span class="c1"># add individual to the exogenous data frame</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span> <span class="o">=</span> \
+                            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span> <span class="o">=</span> \
+                            <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="p">,</span> \
+                            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">])],</span> \
+                            <span class="n">ignore_index</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Reset the data frame indicies.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="k">return</span>
+
+    <span class="c1"># Function to remove individuals from a location.</span>
+    <span class="k">def</span> <span class="nf">_remove_individuals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove individuals from a location&#39;s exogenous information data frame.</span>
+
+<span class="sd">        Given the action to remove individuals to a location, either `ship`</span>
+<span class="sd">        (`action[&#39;x_su_k&#39;]`) or `evac` (`action[&#39;x_hl_k&#39;]` or </span>
+<span class="sd">        `action[&#39;x_sl_k&#39;]`), delete appropriate rows in the exogenous </span>
+<span class="sd">        information data frame.</span>
+
+<span class="sd">        When removing individuals to the `ship`, the data frame </span>
+<span class="sd">        `self.exog_med_transitions_ship` is updated. When removing individuals</span>
+<span class="sd">        to the `evac` site, the data frame `self.exog_med_transitions_evac`</span>
+<span class="sd">        is updated.</span>
+
+<span class="sd">        Note: While `ship` is used in this code, the ship may represent any</span>
+<span class="sd">        asset that can provide medical assistance at the evacuation site.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            A dict that describes the number of individuals in each triage</span>
+<span class="sd">            category that are being removed a location. When location is</span>
+<span class="sd">            `ship`, action should be `action[&#39;x_su_k&#39;]`; when location is </span>
+<span class="sd">            `evac`, action should be `action[&#39;x_hl_k&#39;]` or `action[&#39;x_sl_k&#39;]`.</span>
+<span class="sd">        location : str</span>
+<span class="sd">            Either `evac` or `ship`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">action</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="c1"># get the set of indices in the exog_transitions data frame for</span>
+            <span class="c1"># this location that match the key</span>
+            <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;evac&#39;</span><span class="p">:</span>
+
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="p">[</span> \
+                    <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">==</span> \
+                        <span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+            <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;ship&#39;</span><span class="p">:</span>
+
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="p">[</span> \
+                    <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">==</span> \
+                        <span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">replace</span> <span class="o">=</span> <span class="kc">False</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="c1"># remove selected individuals from the location</span>
+            <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;evac&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> \
+                                                    <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;ship&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> \
+                                                    <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># reset the index for each medical transitions data frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_update_medical_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_hat_k</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the medical triage categories of individuals at a location.</span>
+
+<span class="sd">        Given the time between when an action is taken and the next action,</span>
+<span class="sd">        the medical conditions of individuals at a location stochastically </span>
+<span class="sd">        change. This method updates the exogenous information data frames </span>
+<span class="sd">        `self.exog_med_transitions_evac` when `location` is `evac`, and</span>
+<span class="sd">        `self.exog_med_transitions_ship` when `location` is `ship`. This method</span>
+<span class="sd">        then returns the exogenous information `delta_hat_e_k` or </span>
+<span class="sd">        `delta_hat_s_k` as appropriate. See Section 4.1.3 of Rempel (2024).</span>
+
+<span class="sd">        Note: While `ship` is used in this code, the ship may represent any</span>
+<span class="sd">        asset that can provide medical assistance at the evacuation site.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_hat_k : int</span>
+<span class="sd">            Inter-transition time to the next event k + 1.</span>
+<span class="sd">        location : str</span>
+<span class="sd">            Either `evac` or `ship`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Either `delta_hat_e_k` (if `location` is `evac`) or </span>
+<span class="sd">            `delta_hat_s_k` (if `location` is `ship`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># define delta_hat_e_k and delta_hat_s_k, which are the change in the</span>
+        <span class="c1"># number of individuals in each triage category at the evacuation site</span>
+        <span class="c1"># and onboard the ship respectively</span>
+        <span class="n">delta_hat_e_k</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> \
+                         <span class="s1">&#39;yellow&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+        <span class="n">delta_hat_s_k</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> \
+                         <span class="s1">&#39;yellow&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+        <span class="c1"># create tuples for the number of individuals entering and leaving</span>
+        <span class="c1"># each medical category</span>
+        <span class="n">valid_transitions_evac</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;yellow&#39;</span><span class="p">),</span>
+                                  <span class="p">(</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">)]</span>
+
+        <span class="n">valid_transitions_ship</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;yellow&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">),</span>
+                                  <span class="p">(</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;white&#39;</span><span class="p">)]</span>
+
+        <span class="c1"># evacuation site</span>
+        <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;evac&#39;</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+
+                <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;black&#39;</span><span class="p">:</span>
+                    <span class="c1"># 24 April 2024 - remove following line if all tests pass</span>
+                    <span class="c1"># current_med_category = row[&#39;category&#39;]</span>
+
+                    <span class="n">final_med_category</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">final</span><span class="p">)</span> <span class="ow">in</span> <span class="n">valid_transitions_evac</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="n">initial</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;tau_k&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">tau_hat_k</span><span class="p">):</span>
+                            <span class="n">final_med_category</span> <span class="o">=</span> <span class="n">final</span>
+
+                        <span class="k">if</span> <span class="n">final_med_category</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="o">.</span><span class="n">at</span><span class="p">[</span> \
+                                <span class="n">index</span><span class="p">,</span> <span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_med_category</span>
+
+            <span class="c1"># compute the delta_hat_e_k values</span>
+            <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">delta_hat_e_k</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+
+                <span class="k">if</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="p">[</span> \
+                    <span class="s1">&#39;category&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+                    <span class="n">delta_hat_e_k</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> \
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_evac</span><span class="p">[</span> \
+                            <span class="s1">&#39;category&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()[</span><span class="n">category</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">delta_hat_e_k</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">return</span> <span class="n">delta_hat_e_k</span>
+
+        <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;ship&#39;</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+
+                <span class="c1"># current_med_category = row[&#39;category&#39;]</span>
+
+                <span class="n">final_med_category</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">final</span><span class="p">)</span> <span class="ow">in</span> <span class="n">valid_transitions_ship</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="n">initial</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;tau_k&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">tau_hat_k</span><span class="p">):</span>
+                        <span class="n">final_med_category</span> <span class="o">=</span> <span class="n">final</span>
+
+                    <span class="k">if</span> <span class="n">final_med_category</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_med_category</span>
+
+            <span class="c1"># compute the delta_hat_e_k values</span>
+            <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">delta_hat_s_k</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+
+                <span class="k">if</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="p">[</span> \
+                    <span class="s1">&#39;category&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+                    <span class="n">delta_hat_s_k</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> \
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exog_med_transitions_ship</span><span class="p">[</span> \
+                            <span class="s1">&#39;category&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()[</span><span class="n">category</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">delta_hat_s_k</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">return</span> <span class="n">delta_hat_s_k</span>
+
+    <span class="k">def</span> <span class="nf">_compute_delta_hat_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_hat_k</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the updated number of individuals in each triage category.</span>
+
+<span class="sd">        This method computes the updated number of individuals in each triage</span>
+<span class="sd">        category at the evacuation site and onboard the ship. These are the </span>
+<span class="sd">        first two components of the exogenous information vector `W_k_plus_one`,</span>
+<span class="sd">        more specifically `delta_hat_e_plus_one` and `delta_hat_s_plus_one`. See</span>
+<span class="sd">        equation (7) in Rempel (2024).</span>
+
+<span class="sd">        These changes are based not only on the time to the next event k + 1</span>
+<span class="sd">        as presented by `tau_hat_k`, but also the action that has been taken</span>
+<span class="sd">        to load the helicopter `action[&#39;x_hl_k&#39;]`, load the ship </span>
+<span class="sd">        `action[&#39;x_sl_k&#39;]`, or unload the ship `action[&#39;x_su_k&#39;]`.</span>
+
+<span class="sd">        Note: While `ship` is used in this code, the ship may represent any</span>
+<span class="sd">        asset that can provide medical assistance at the evacuation site.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_hat_k : int</span>
+<span class="sd">            Inter-transition time to the next event k + 1.</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            A dict that describes the number of individuals in each triage</span>
+<span class="sd">            category that are being acted upon. The dict contains three</span>
+<span class="sd">            key-value pairs, namely `x_hl_k` (loading a helicopter); `x_sl_k`</span>
+<span class="sd">            (loading a ship), and `x_su_k` (unloading a ship).  </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary with two key-value pairs, `delta_hat_e_k` and</span>
+<span class="sd">            `delta_hat_s_k` that represent the updated number of individuals</span>
+<span class="sd">            in each medical condition at the evacuation site and onboard the</span>
+<span class="sd">            ship.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># define delta_hat_e_k and delta_hat_s_k, which are the change in the</span>
+        <span class="c1"># number of individuals in each triage category at the evacuation site</span>
+        <span class="c1"># and onboard the ship respectively</span>
+        <span class="n">delta_hat_e_k</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> \
+                         <span class="s1">&#39;yellow&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+        <span class="n">delta_hat_s_k</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;white&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> \
+                         <span class="s1">&#39;yellow&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+        
+        <span class="c1"># create data frames for the number of individuals entering and leaving</span>
+        <span class="c1"># each medical category</span>
+        <span class="c1"># valid_transitions_evac = [(&#39;white&#39;, &#39;green&#39;), (&#39;green&#39;, &#39;yellow&#39;), \</span>
+        <span class="c1">#                          (&#39;yellow&#39;, &#39;red&#39;), (&#39;red&#39;, &#39;black&#39;)]</span>
+
+        <span class="c1"># valid_transitions_ship = [(&#39;red&#39;, &#39;yellow&#39;), (&#39;yellow&#39;, &#39;green&#39;), \</span>
+        <span class="c1">#                          (&#39;green&#39;, &#39;white&#39;)]</span>
+
+        <span class="c1"># self.state.e_k = 0: all individuals have arrived at evacuation site</span>
+        <span class="c1"># tau_hat_k is the inter-arrival time to the next event, so the decay</span>
+        <span class="c1"># of indivduals medical condition at the evacuation site must be</span>
+        <span class="c1"># determined</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+            <span class="c1"># update medical condition of individuals at evac site</span>
+            <span class="n">delta_hat_e_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+        <span class="c1"># loading a helicopter; in this situation individuals have been</span>
+        <span class="c1"># extracted from the evacuation site already so the exogenous info is</span>
+        <span class="c1"># only on the remaining individuals</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="c1"># remove individuals from evac site in exogenous information</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_remove_individuals</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_hl_k&#39;</span><span class="p">],</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># update medical condition of individuals remaining at evac site</span>
+            <span class="n">delta_hat_e_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># update medical condition of individuals onboard the ship</span>
+            <span class="n">delta_hat_s_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;ship&#39;</span><span class="p">)</span>
+
+        <span class="c1"># loading a ship; here individuals have been already loaded onto a</span>
+        <span class="c1"># ship and their deterioration onboard the ship plus those already</span>
+        <span class="c1"># onboard the ship must be considered</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+
+            <span class="c1"># remove individuals from evac site in exogenous information</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_remove_individuals</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">],</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># add individuals onboard exogenous information for the ship</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_individuals</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_sl_k&#39;</span><span class="p">],</span> <span class="s1">&#39;ship&#39;</span><span class="p">)</span>
+
+            <span class="c1"># update medical condition of individuals remaining at the evac</span>
+            <span class="c1"># site</span>
+            <span class="n">delta_hat_e_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># update medical condition of individuals onboard the ship</span>
+            <span class="n">delta_hat_s_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;ship&#39;</span><span class="p">)</span>
+
+        <span class="c1"># unloading ship; here individuals are unloaded from the ship, so at</span>
+        <span class="c1"># the evacuation site the exogenous information must consider those </span>
+        <span class="c1"># already at the site and those departed the ship, and for the ship is</span>
+        <span class="c1"># must only consider those after departure</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;e_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+
+            <span class="c1"># remove individuals from ship in exogenous information</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_remove_individuals</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">],</span> <span class="s1">&#39;ship&#39;</span><span class="p">)</span>
+
+            <span class="c1"># add individuals to evac site exogenous information</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_individuals</span><span class="p">(</span><span class="n">action</span><span class="p">[</span><span class="s1">&#39;x_su_k&#39;</span><span class="p">],</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># update medical condition of individuals at the evac site</span>
+            <span class="n">delta_hat_e_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;evac&#39;</span><span class="p">)</span>
+
+            <span class="c1"># update medical condition of individuals onboard the ship</span>
+            <span class="n">delta_hat_s_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_medical_condition</span><span class="p">(</span><span class="n">tau_hat_k</span><span class="p">,</span> <span class="s1">&#39;ship&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;delta_hat_e_k&#39;</span><span class="p">:</span> <span class="n">delta_hat_e_k</span><span class="p">,</span> <span class="s1">&#39;delta_hat_s_k&#39;</span> <span class="p">:</span> <span class="n">delta_hat_s_k</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_exog_info_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the exogenous information that arrives after an action is taken.</span>
+
+<span class="sd">        This method returns the W_k_plus_one vector that represents the </span>
+<span class="sd">        exogenous information that arrives after an action is taken. See</span>
+<span class="sd">        equation (7) in Rempel (2024). The exogenous information vector consists</span>
+<span class="sd">        of four components:</span>
+
+<span class="sd">        - updated number of individuals in each triage category at the evacuation site (`delta_hat_e_k_plus_one`);</span>
+<span class="sd">        - updated number of individuals in each triage category on the ship (`delta_hat_s_k_plus_one`);</span>
+<span class="sd">        - event which triggers the next state (`e_hat_k_plus_one`):</span>
+<span class="sd">            - 0: all individuals have arrived at the evac site</span>
+<span class="sd">            - 1: helo arrives at the evac site and is ready to load individuals</span>
+<span class="sd">            - 2: ship is ready to load individuals</span>
+<span class="sd">            - 3: ship is ready to unload individuals</span>
+<span class="sd">        - the inter-transition time to the next event (`tau_hat_k_plus_one`)</span>
+
+<span class="sd">        For readability in the code, k_plus_one is dropped from the variables </span>
+<span class="sd">        and instead only k is used.</span>
+
+<span class="sd">        Note: While `ship` is used in this code, the ship may represent any</span>
+<span class="sd">        asset that can provide medical assistance at the evacuation site.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            A dict that describes the number of individuals in each triage</span>
+<span class="sd">            category that are being acted upon. The dict contains three</span>
+<span class="sd">            key-value pairs, namely `x_hl_k` (loading a helicopter); `x_sl_k`</span>
+<span class="sd">            (loading a ship), and `x_su_k` (unloading a ship).   </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dict with four key-value pairs that represent the W_{k + 1}</span>
+<span class="sd">            exogenous information vector. The four key-value pairs on</span>
+<span class="sd">            delta_hat_e_k, delta_hat_s_k, e_hat_k, and tau_hat_k.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># determine the next event that will take place (e_hat_k)</span>
+        <span class="n">tau_hat_k_plus_one</span><span class="p">,</span> <span class="n">e_hat_k_plus_one</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="n">medical_transition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_delta_hat_k</span><span class="p">(</span><span class="n">tau_hat_k_plus_one</span><span class="p">,</span> \
+                                                       <span class="n">action</span><span class="p">)</span>
+
+        <span class="c1"># e_hat_k_plus_one == 1: a helo will be arriving next at the evacuation </span>
+        <span class="c1"># site and selecting who to load, so we need to get the updated </span>
+        <span class="c1"># information for for evacuation site</span>
+        <span class="k">if</span> <span class="n">e_hat_k_plus_one</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="c1"># Add the event to the queue when the helicopter will return. </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;eta_h&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="n">setRelative</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># e_hat_k_plus_one == 2: a ship will be arriving next to load </span>
+        <span class="c1"># individuals</span>
+        <span class="k">if</span> <span class="n">e_hat_k_plus_one</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+
+            <span class="c1"># Add the event to the queue when the individuals from the ship will</span>
+            <span class="c1"># be checked to determine if they are to be removed from the ship</span>
+            <span class="c1"># and returned to the evacuation site (making room for others to</span>
+            <span class="c1"># board the ship and receive medical attention).</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;eta_sl&#39;</span><span class="p">],</span> <span class="mi">3</span><span class="p">,</span> <span class="n">setRelative</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># e_hat_k_plus_one == 3: a ship will be unloading individuals next; </span>
+        <span class="c1"># schedule when the next set will be loading</span>
+        <span class="k">if</span> <span class="n">e_hat_k_plus_one</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span><span class="p">[</span><span class="s1">&#39;eta_su&#39;</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="n">setRelative</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;delta_hat_e_k&#39;</span><span class="p">:</span> <span class="n">medical_transition</span><span class="p">[</span><span class="s1">&#39;delta_hat_e_k&#39;</span><span class="p">],</span> \
+                 <span class="s1">&#39;delta_hat_s_k&#39;</span><span class="p">:</span> <span class="n">medical_transition</span><span class="p">[</span><span class="s1">&#39;delta_hat_s_k&#39;</span><span class="p">],</span> \
+                 <span class="s1">&#39;e_hat_k&#39;</span><span class="p">:</span> <span class="n">e_hat_k_plus_one</span><span class="p">,</span> <span class="s1">&#39;tau_hat_k&#39;</span><span class="p">:</span> <span class="n">tau_hat_k_plus_one</span><span class="p">}</span>
+
+
+    <span class="k">def</span> <span class="nf">_transition_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">exog_info</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the next state.</span>
+
+<span class="sd">        This method implements the transition function described in Section</span>
+<span class="sd">        4.1.3 of Rempel (2024) - S_k_plus_one = S^m(S_k, x_k, W_k_plus_one).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        action : dict</span>
+<span class="sd">            A dict of three actions: (i) load a helicopter `x_hl_k`; </span>
+<span class="sd">            (ii) load a ship `x_sl_k`; and (iii) unload a ship `x_su_k`. </span>
+<span class="sd">            The value of each of these keys is itself a dict with key-value </span>
+<span class="sd">            pairs that represent the number of individuals selected from the </span>
+<span class="sd">            `white`, `green`, `yellow`, and `red` triage categories. Note that</span>
+<span class="sd">            individuals in the `black` triage category (deceased) are not </span>
+<span class="sd">            loaded onto a helicopter or ship.</span>
+
+<span class="sd">            For example, `action[&#39;x_hl_k&#39;] = {&#39;white&#39; : 5, &#39;green&#39; : 2,</span>
+<span class="sd">            &#39;yellow&#39; : 1, &#39;red&#39; : 0}`.</span>
+
+<span class="sd">            Note: `action` is not currently used in this implementation.</span>
+<span class="sd">            However, it is included as a parameter to conform with the </span>
+<span class="sd">            notation laid out in Powell (2022) and may be used in future</span>
+<span class="sd">            implementations.</span>
+
+<span class="sd">            Note: While `ship` is used in this code, the ship may represent any</span>
+<span class="sd">            asset that can provide medical assistance at the evacuation site.</span>
+<span class="sd">         </span>
+<span class="sd">        exog_info : dict</span>
+<span class="sd">            Exogenous information that arrives after a decision is made. </span>
+<span class="sd">            Contains four key-value pairs `delta_hat_e_k`, `delta_hat_s_k`,</span>
+<span class="sd">            `e_hat_k`, and `tau_hat_k`. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Next state S_k_plus_one. Contains four key-value pairs: `tau_k`,</span>
+<span class="sd">            `rho_e_k`, `rho_s_k`, and `e_k`. See equation (1) in Rempel (2024).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">tau_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;tau_k&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">exog_info</span><span class="p">[</span><span class="s1">&#39;tau_hat_k&#39;</span><span class="p">]</span>
+
+        <span class="n">e_k</span> <span class="o">=</span> <span class="n">exog_info</span><span class="p">[</span><span class="s1">&#39;e_hat_k&#39;</span><span class="p">]</span>
+
+        <span class="n">rho_e_k</span> <span class="o">=</span> <span class="n">exog_info</span><span class="p">[</span><span class="s1">&#39;delta_hat_e_k&#39;</span><span class="p">]</span>
+        <span class="n">rho_s_k</span> <span class="o">=</span> <span class="n">exog_info</span><span class="p">[</span><span class="s1">&#39;delta_hat_s_k&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;tau_k&#39;</span><span class="p">:</span> <span class="n">tau_k</span><span class="p">,</span> <span class="s1">&#39;rho_e_k&#39;</span><span class="p">:</span> <span class="n">rho_e_k</span><span class="p">,</span> \
+                <span class="s1">&#39;rho_s_k&#39;</span><span class="p">:</span> <span class="n">rho_s_k</span><span class="p">,</span> \
+                    <span class="s1">&#39;e_k&#39;</span><span class="p">:</span> <span class="n">e_k</span><span class="p">}</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pyMassEvac</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../pyMassEvac.html">pyMassEvac package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2025, Mark Rempel.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
