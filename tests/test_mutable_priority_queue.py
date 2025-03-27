@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import copy
 
-from gym_mass_evacuation import mutable_priority_queue
+from pyMassEvac import mutable_priority_queue
 
 def test_init():
     """Test the init method.

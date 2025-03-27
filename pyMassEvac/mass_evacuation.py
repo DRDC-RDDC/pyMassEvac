@@ -55,7 +55,7 @@ import gymnasium as gym
 import numpy as np
 import pandas as pd
 
-from gym_mass_evacuation.mutable_priority_queue import MutablePriorityQueue
+from pyMassEvac.mutable_priority_queue import MutablePriorityQueue
 
 class MassEvacuation(gym.Env):
 

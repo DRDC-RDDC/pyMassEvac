@@ -6,7 +6,7 @@ with open("README.rst") as readme_file:
 setup(
     name="pyMassEvac",
     version="0.0.1",
-    description="A custom gymnasium environment for studying multi-domain mass evacuation operations.",
+    description="A custom gymnasium environment for studying single- and multi-domain mass evacuation operations.",
     long_description=readme,
     long_description_content_type="text/x-rst",
     url="",
@@ -20,6 +20,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12"
         "License :: OSI Approved :: MIT License",   
         "Operating System :: OS Independent",  
         "Topic :: Scientific/Engineering :: Information Analysis",
@@ -28,7 +29,7 @@ setup(
     keywords="mass evacuation, reinforcement learning, sequential decision problem",
     python_requires=">=3.7",
     packages=find_packages(include = \
-                           ["gym_mass_evacuation"], \
+                           ["pyMassEvac"], \
                             exclude=["docs", "tests"]),
     include_package_data=True,
     install_requires=[
@@ -36,7 +37,6 @@ setup(
         "numpy",
         "matplotlib",
         "gymnasium",
-        "stable-baselines3",
         "tdqm",
         "seaborn"
     ],

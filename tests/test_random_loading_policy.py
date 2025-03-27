@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from gym_mass_evacuation import mass_evacuation_policy 
+from pyMassEvac import mass_evacuation_policy 
 
 @pytest.fixture
 def seed():
