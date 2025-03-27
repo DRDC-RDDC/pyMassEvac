@@ -34,6 +34,10 @@ class MassEvacuationPolicy:
     instance of a policy function approximation and, in general, is given as 
     x_k = X^\\pi(S_k).
 
+    Note: Although helicopters and ships are referred to throughout this code,
+    they can be any transport vehicle and asset that can provide medical
+    assistance at the evacuation site respectively. 
+
     Attributes
     ----------
     seed : int
@@ -45,7 +49,7 @@ class MassEvacuationPolicy:
         """Initialize a decision policy object.
 
         The policy class contains the set of policy function
-        approximations that were explored in Rempel (2024) [1]_:
+        approximations that were explored in Rempel (2024) [1]:
         green-first loading policy, yellow-first loading policy,
         critical-first loading policy, random loading / unloading
         policy, white-tags only unloading policy. See Table 4
@@ -98,7 +102,7 @@ class MassEvacuationPolicy:
         """Green-first loading policy.
 
         This method implements the green-first loading policy, see
-        Section 4.3.1 of Rempel (2024). It prioritizes selecting \
+        Section 4.3.1 of Rempel (2024). It prioritizes selecting
         individuals in triage categories as follows: green, white, 
         red, yellow.
 
@@ -108,7 +112,7 @@ class MassEvacuationPolicy:
             State of the mass evacuation problem as described in
             equation (1) in Rempel (2024). Dict contains four 
             key-value pairs: `tau_k`, `e_k`, `rho_e_k`, and `rho_s_k`.
-            See gym_mass_evacuation.mass_evacuation for details.
+            See mass_evacuation.py for details.
         params : dict
             Policy parameters that provide constraints on the 
             decision: `total_capacity` is the total capacity available 
@@ -216,7 +220,7 @@ class MassEvacuationPolicy:
             State of the mass evacuation problem as described in
             equation (1) in Rempel (2024). Dict contains four 
             key-value pairs: `tau_k`, `e_k`, `rho_e_k`, and `rho_s_k`.
-            See gym_mass_evacuation.mass_evacuation for details.
+            See mass_evacuation.py for details.
         params : dict
             Policy parameters that provide constraints on the 
             decision: `total_capacity` is the total capacity available 
@@ -321,7 +325,7 @@ class MassEvacuationPolicy:
             State of the mass evacuation problem as described in
             equation (1) in Rempel (2024). Dict contains four 
             key-value pairs: `tau_k`, `e_k`, `rho_e_k`, and `rho_s_k`.
-            See gym_mass_evacuation.mass_evacuation for details.
+            See mass_evacuation.py for details.
         params : dict
             Policy parameters that provide constraints on the 
             decision: `total_capacity` is the total capacity available 
@@ -375,8 +379,8 @@ class MassEvacuationPolicy:
             capacity_consumed = 0
             while (capacity_consumed < total_capacity) and (num_loaded < num_available_total) and (min_individual_capacity_needed <= total_capacity - capacity_consumed):
 
-                # check if an individual with a yellow medical condition is available
-                # to be loaded
+                # check if an individual with a yellow medical condition is 
+                # available to be loaded
                 if (num_available['red'] > 0) & (capacity_consumed + individual_capacity['red'] <= total_capacity):
 
                     decision['red'] += 1
@@ -441,7 +445,6 @@ class MassEvacuationPolicy:
             `white` : 2, `green` : 3, etc.
         """
 
-
         # Extract the policy parameters
         total_capacity = params['total_capacity']
         individual_capacity = params['individual_capacity']
@@ -451,7 +454,7 @@ class MassEvacuationPolicy:
         # check the max number of individuals that are available to be loaded
         num_loaded = 0
         num_available = 0
-        
+
         for k in state['rho_e_k'].keys():
             if k != 'black':
                 num_available += state['rho_e_k'][k]

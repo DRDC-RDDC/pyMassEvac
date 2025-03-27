@@ -10,19 +10,49 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
 class MutablePriorityQueue:
+    """A mutable queue.
+    
+    This class provides a queue that can be changed overtime, and reordered
+    given the addition of new items.
+
+    Attributes
+    ----------
+    queue : DataFrame
+        A pandas dataframe that consists of two columns: `tau_k` and `e_k`.
+        The first is the time to the event, and the second is the 
+        associated event.
+    """
 
     def __init__(self):
+        """Initialize a mutable queue.
+
+        Initialize a pandas data frame with two columns: `tau_k` and `e_k`.
+        The first is the time to the event, and the second is the 
+        associated event.
+        """
 
         self.queue = pd.DataFrame(columns = ['tau_k', 'e_k'])
         return
 
     def put(self, tau_k, e_k, setRelative = False):
+        """Add a new event to the queue.
+        
+        Parameters
+        ----------
+        tau_k : int
+            The system time the new event is set to occur.
+        e_k : int        
+            An int that identified the type of event that will occur.
+        setRelative : boolean
+            A boolean that indicates if the values in the tau_k column
+            should updated to be relative; True (default) will set the
+            values to be relative; False will not change the values.
+        """
 
         if (len(self.queue.index) > 1) & (setRelative == True):
             # transform the tau_k's from relative into absolute so that they can
             # be sorted correctly
             for i in range(1, len(self.queue.index)):
-                # self.queue.iloc[i]['tau_k'] += self.queue.iloc[i - 1]['tau_k']
                 new_value = self.queue.loc[i, 'tau_k'] - \
                     self.queue.loc[i - 1, 'tau_k']
                 self.queue.loc[i, 'tau_k'] = new_value                
@@ -44,23 +74,34 @@ class MutablePriorityQueue:
         return
 
     def setRelative(self):
+        """Update the queue such that the values in the tau_k column are
+        relative.
+
+        Update the queue such that the values in the tau_k column are relative.
+        """
 
         # update the values of tau_k so that they are relative to the next
         # event that will arise
         for r in range(len(self.queue.index) - 1, 0, -1):
-            #self.queue['tau_k'][r] -= self.queue['tau_k'][r - 1]
             new_value = self.queue.loc[r, 'tau_k'] - \
                 self.queue.loc[r - 1, 'tau_k']
             self.queue.loc[r, 'tau_k'] = new_value
-
-        #for r in range(1, len(self.queue.index)):
-        #    self.queue['tau_k'][r] -= self.queue['tau_k'][r - 1]
-            #self.queue.loc['tau_k', r] -= self.queue['tau_k'][r - 1]
 
         return
 
 
     def get(self):
+        """Get the next event in the queue.
+
+        Get the next event in the queue.
+
+        Returns
+        -------
+        tau_k : int
+            The time the next event will occur.
+        e_k : int
+            An integer indicating the type of event that will next occur.
+        """
 
         # get the highest priority event
         tau_k = self.queue['tau_k'][0]
