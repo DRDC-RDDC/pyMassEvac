@@ -12,5 +12,5 @@ dependencies:
   - gymnasium
   - pytest
   - pytest-cov
-  - tdqm
+  - tqdm
   - seaborn

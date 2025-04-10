@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pip", "Sphinx", "jupyterlab", "matplotlib", "pytest", "pytest-cov", "tdqm", "seaborn"]
+dev = ["pip", "Sphinx", "jupyterlab", "matplotlib", "pytest", "pytest-cov", "tqdm", "seaborn"]
 
 [tool.setuptools.packages.find]
 exclude=["docs", "tests"]

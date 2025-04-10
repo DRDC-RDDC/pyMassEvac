@@ -63,3 +63,10 @@ This option requires that **pyMassEvac** be cloned from GitHub. Doing so will en
     conda env create -f environment.yml
     conda activate pyMassEvac
     pip install -e .
+
+Example usage
+#############
+
+Please refer to the `tutorial directory <https://github.com/mrempel/pyMassEvac/blob/master/tutorial>`_ for a tutorial on how to use **pyMassEvac** to model a mass evacuation scenario and study the effectiveness of a set of decision policies.
+
+
