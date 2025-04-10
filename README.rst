@@ -24,7 +24,7 @@ Decision policies
 * the policy that determines which individuals receive medical care (if available) at the evacuation site; and
 * the policy that determines which individuals are removed from the group receiving medical care and returned to the group ready to be transported to the FOL. 
 
-Example decision policies may be found in :code:`gym_mass_evacuation/mass_evacuation_policy.py`.
+Example decision policies may be found in :code:`pyMassEvac/mass_evacuation_policy.py`.
 
 Initial state
 =============
@@ -54,12 +54,12 @@ Installation
 
 Option 1: Install from GitHub
 #############################
-This option requires that gym_mass_evacuation be cloned from GitHub. Doing so will enable all dependencies to be installed automatically.
+This option requires that **pyMassEvac** be cloned from GitHub. Doing so will enable all dependencies to be installed automatically.
 
 .. code-block::
 
-    git clone https://github.com/mrempel/gym-mass_evacuation.git
-    cd gym-mass_evacuation
+    git clone https://github.com/mrempel/pyMassEvac.git
+    cd pyMassEvac
     conda env create -f environment.yml
-    conda activate gym-mass_evacuation
+    conda activate pyMassEvac
     pip install -e .
