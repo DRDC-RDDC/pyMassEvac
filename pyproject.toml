@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyMassEvac"
+authors = [{name = "Mark Rempel", email = "mark.rempel@forces.gc.ca"}]
+version = "0.0.1"
+description = "A Python package for simulating multi-domain mass evacuation operations"
+readme = "README.rst"
+requires-python = ">=3.7"
+keywords = ["simulation", "reinforcement learning", "mass evacuation"]
+license = {text = "MIT"}
+dependencies = [
+    "pandas",
+    "numpy",
+    "gymnasium"
+]
+
+[project.optional-dependencies]
+dev = ["pip", "Sphinx", "jupyterlab", "matplotlib", "pytest", "pytest-cov", "tdqm", "seaborn"]
+
+[tool.setuptools.packages.find]
+exclude=["docs", "tests"]
+
+[project.urls]
+Source = "https://github.com/mrempel/pyMassEvac"
