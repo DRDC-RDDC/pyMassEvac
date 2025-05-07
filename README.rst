@@ -69,4 +69,22 @@ Example usage
 
 Please refer to the `tutorial directory <https://github.com/mrempel/pyMassEvac/blob/master/tutorial>`_ for a tutorial on how to use **pyMassEvac** to model a mass evacuation scenario and study the effectiveness of a set of decision policies.
 
+Contributing
+############
+
+For major changes, please open an issue first to discuss what you would like to change. 
+For more details, `click here <https://github.com/mrempel/pyMassEvac/blob/master/CONTRIBUTING.md>`_.
+
+Contact
+#######
+
+For any questions, feedback, bug reports, feature requests, etc. please
+first present your thoughts via GitHub issues. For further assistance
+please contact mark.rempel@forces.gc.ca.
+
+Copyright
+#####################
+
+Copyright (c) His Majesty the King in Right of Canada, as represented
+by the Minister of National Defence, 2025.
 
