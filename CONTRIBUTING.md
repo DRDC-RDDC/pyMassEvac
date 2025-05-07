@@ -1,4 +1,4 @@
-## Contributing to GeoHexViz
+## Contributing to pyMassEvac
 
 #### **Did you find a bug?**
 
