@@ -2,12 +2,12 @@
 
 #### **Did you find a bug?**
 
-* Bugs can be reported via the issue tracker (https://github.com/mrempel/pyMassEvac/issues)
+* Bugs can be reported via the issue tracker (https://github.com/DRDC-RDDC/pyMassEvac/issues)
 
 #### **Requesting a feature?**
 
 * If you would like to see a new feature please make a request in the issues tracker 
-(https://github.com/mrempel/pyMassEvac/issues); with the issue being tagged as a feature. 
+(https://github.com/DRDC-RDDC/pyMassEvac/issues); with the issue being tagged as a feature. 
 If it seems that it would be of general usefulness we will happily consider implementing it.
 
 #### **Want to develop?**
