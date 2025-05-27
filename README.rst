@@ -1,8 +1,3 @@
-|GitHub license|
-
-.. |GitHub license| image:: https://img.shields.io/github/license/mrempel/pyMassEvac.svg
-   :target: https://github.com/mremepl/pyMassEvac/blob/main/LICENSE
-
 ==========
 pyMassEvac
 ==========
@@ -13,7 +8,7 @@ pyMassEvac
 * each individual's medical condition may change over time, perhaps due to environmental conditions, injury, or care being provided; and 
 * the individuals must be transported from the evacuation site to a Forward Operating Location (FOL).
 
-**pyMassEvac** models these operations using Powell's universal modelling framework for sequential decisions, with the full mathematical model is described in @rempel2024a. This implementation is intended to be primarily used by operational researchers in two ways: (i) to study the impact of various decision policies; and (ii) to study the robustness of selected decision policies to the operation's initial state.
+**pyMassEvac** models these operations using Powell's universal modelling framework for sequential decisions, with the full mathematical model is described in `this paper <https://doi.org/10.1016/j.ssci.2023.106379>`_. This implementation is intended to be primarily used by operational researchers in two ways: (i) to study the impact of various decision policies; and (ii) to study the robustness of selected decision policies to the operation's initial state.
 
 Decision policies
 =================
@@ -52,13 +47,11 @@ An operation's initial state is defined by 11 parameters. These are defined as f
 Installation
 ############
 
-Option 1: Install from GitHub
-#############################
-This option requires that **pyMassEvac** be cloned from GitHub. Doing so will enable all dependencies to be installed automatically.
+**pyMassEvac** can be cloned from GitHub. Doing so will enable all dependencies to be installed automatically.
 
 .. code-block::
 
-    git clone https://github.com/mrempel/pyMassEvac.git
+    git clone https://github.com/DRDC-RDDC/pyMassEvac.git
     cd pyMassEvac
     conda env create -f environment.yml
     conda activate pyMassEvac
@@ -67,13 +60,13 @@ This option requires that **pyMassEvac** be cloned from GitHub. Doing so will en
 Example usage
 #############
 
-Please refer to the `tutorial directory <https://github.com/mrempel/pyMassEvac/blob/master/tutorial>`_ for a tutorial on how to use **pyMassEvac** to model a mass evacuation scenario and study the effectiveness of a set of decision policies.
+Please refer to the `tutorial directory <https://github.com/DRDC-RDDC/pyMassEvac/blob/master/tutorial>`_ for a tutorial on how to use **pyMassEvac** to model a mass evacuation scenario and study the effectiveness of a set of decision policies.
 
 Contributing
 ############
 
 For major changes, please open an issue first to discuss what you would like to change. 
-For more details, `click here <https://github.com/mrempel/pyMassEvac/blob/master/CONTRIBUTING.md>`_.
+For more details, `click here <https://github.com/DRDC-RDDC/pyMassEvac/blob/master/CONTRIBUTING.md>`_.
 
 Contact
 #######
