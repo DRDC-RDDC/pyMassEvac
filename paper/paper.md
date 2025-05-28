@@ -216,7 +216,7 @@ should also be considered.
 # Acknowledgements
 
 I acknowledge contributions from both Nicholi Shiell and Kaeden Tessier, who 
-are co-authors on related papers. These collaborations inspired the development 
+are co-authors on related papers [@rempel2021a; @rempel2023a]. These collaborations inspired the development 
 of this package.
 
 # References
