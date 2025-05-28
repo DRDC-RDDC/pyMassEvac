@@ -5,14 +5,14 @@ with open("README.rst") as readme_file:
 
 setup(
     name="pyMassEvac",
-    version="0.0.1",
+    version="1.0.0",
     description="A custom gymnasium environment for studying single- and multi-domain mass evacuation operations.",
     long_description=readme,
     long_description_content_type="text/x-rst",
     url="",
     author="Mark Rempel",
     author_email="mark.rempel@forces.gc.ca",
-    license="MIT",
+    license="BSD-3",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
@@ -21,7 +21,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12"
-        "License :: OSI Approved :: MIT License",   
+        "License :: OSI Approved :: BSD-3 License",   
         "Operating System :: OS Independent",  
         "Topic :: Scientific/Engineering :: Information Analysis",
         "Topic :: Scientific/Engineering"
