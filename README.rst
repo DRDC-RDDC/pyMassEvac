@@ -8,7 +8,7 @@ pyMassEvac
 * each individual's medical condition may change over time, perhaps due to environmental conditions, injury, or care being provided; and 
 * the individuals must be transported from the evacuation site to a Forward Operating Location (FOL).
 
-**pyMassEvac** models these operations using Powell's universal modelling framework for sequential decisions, with the full mathematical model is described in `this paper <https://doi.org/10.1016/j.ssci.2023.106379>`_. This implementation is intended to be primarily used by operational researchers in two ways: (i) to study the impact of various decision policies; and (ii) to study the robustness of selected decision policies to the operation's initial state.
+**pyMassEvac** models these operations using Powell's universal modelling framework for sequential decisions, with the full mathematical model is described in `this paper <https://www.sciencedirect.com/science/article/abs/pii/S0925753523003211>`_. This implementation is intended to be primarily used by operational researchers in two ways: (i) to study the impact of various decision policies; and (ii) to study the robustness of selected decision policies to the operation's initial state.
 
 Decision policies
 =================
