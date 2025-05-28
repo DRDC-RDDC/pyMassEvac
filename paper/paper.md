@@ -5,7 +5,7 @@ tags:
   - evacuation
   - Arctic
   - security
-  - Reinforcement Learning
+  - sequential decision problem
 authors:
   - name: Mark Rempel
     orcid: 0000-0002-6248-1722
@@ -14,7 +14,7 @@ authors:
 affiliations:
  - name: Defence Research and Development Canada, Canada
    index: 1
-date: 7 March 2025
+date: 28 May 2025
 bibliography: paper.bib
 
 ---
@@ -81,9 +81,9 @@ may reflect an operational decision to invest in improved medical kit.
 
 Thus, `pyMassEvac` is designed to be primarily used by operational researchers who study humanitarian or defence and security operations.
 
-`pyMassEvac` is accessible at `https://github.com/mrempel/pyMassEvac` and is 
+`pyMassEvac` is accessible at `https://github.com/DRDC-RDDC/pyMassEvac` and is 
 installed via a `setup.py` script. In addition, published evacuation scenarios 
-that have studied using this package (or one of its earlier developmental versions) 
+that have been studied using this package (or one of its earlier developmental versions) 
 are described in @rempel2021a, @rempel2023a, and @rempel2024a.
 
 # Statement of need
@@ -96,7 +96,7 @@ incidents that may occur and the increased size of those incidents in terms
 of the number of individuals in need of evacuation. This is evidenced by 
 recent exercises that have been conducted, such as the SARex series in 
 Norway [@solberg2016a; @solberg2018a], a table-top exercise including the 
-United States, Canada, and the cruise ship industry [@mcnutt2016a], and 
+United States, Canada, and the cruise ship industry [@mcnutt2016a], and the
 NANOOK-TATIGIT 21 exercise led by the Canadian Armed Forces [@nationaldefence2021a].
 
 While software exists to support planning for and the execution of evacuation 
@@ -152,8 +152,8 @@ individuals have arrived at the evacuation site; and
 - $\tau^s$: Vector of initial arrival time (hours) of each medical care facility (such 
 as a ship) after the individuals have arrived at the evacuation site.
 
-Note that the initial state in `pyMassEvac` differs from @rempel2024a as this package
-includes both $\tau^h$ and $\tau^s$. In @rempel2024a these two parameters were specified
+Note that the initial state in `pyMassEvac` differs from @rempel2024a, specifically
+including both $\tau^h$ and $\tau^s$. In @rempel2024a these two parameters were specified
 separately in the case study presented in Section 5.
 
 An example of an initial state, with one transport vehicle and one medical care facility, 
