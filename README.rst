@@ -2,6 +2,16 @@
 pyMassEvac
 ==========
 
+|license| |joss|
+
+.. |license| image:: https://img.shields.io/github/license/DRDC-RDDC/pyMassEvac
+   :alt: GitHub License
+
+.. |joss| image:: https://joss.theoj.org/papers/26c55ba4b5fd0de04ebdddde202142d5/status.svg
+    :alt: joss
+    :target: https://joss.theoj.org/papers/26c55ba4b5fd0de04ebdddde202142d5
+
+
 **pyMassEvac** is a Python library that aims to study single- and multi-domain mass evacuation operations. While a wide range of operations exist within this context, **pyMassEvac** is specifically designed to study operations in which:
 
 * the individuals to be evacuated are at a remote location, such as in the Arctic, where access to immediate medical care is limited or non-existent; 
