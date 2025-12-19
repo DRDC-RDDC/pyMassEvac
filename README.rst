@@ -50,7 +50,7 @@ An operation's initial state is defined by 11 parameters. These are defined as f
 * $\\delta^s$: Vector of capacity consumed by each triage category $t \\in \\mathcal{T} \\setminus \\{b\\}$ when receiving medical care;
 * $\\eta^h$: Total time (hours) for a transport vehicle to load individuals at the evacuation site, transport them to the FOL, unload the individuals, and return to the evacuation site;
 * $\\eta^{sl}$: Total time (hours) to transfer individuals at the evacuation site to the local facility (such as a ship) in which they will receive medical care, plus the time until a decision is made as to which individuals to transfer back to the evacuation site;
-* $\\eta^{su}$: Total time to transfer individuals from the local facility (such as a ship) in which they are receiving medical care to the evacuation site, plus the time until a decision is made as to which individuals to transport to the FOL;
+* $\\eta^{su}$: Total time (hours) to transfer individuals from the local facility (such as a ship) in which they are receiving medical care to the evacuation site, plus the time until a decision is made as to which individuals to transport to the FOL;
 * $\\tau^h$: Vector of initial arrival time (hours) of each transport vehicle after the individuals have arrived at the evacuation site; and
 * $\\tau^s$: Vector of initial arrival time (hours) of each medical care facility (such as a ship) after the individuals have arrived at the evacuation site.
 
