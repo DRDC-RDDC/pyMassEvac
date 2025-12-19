@@ -14,7 +14,7 @@ authors:
 affiliations:
  - name: Defence Research and Development Canada, Canada
    index: 1
-date: 28 May 2025
+date: 19 December 2025
 bibliography: paper.bib
 
 ---
@@ -36,7 +36,7 @@ Operating Location (FOL).
 An example of a multi-domain mass evacuation operation, where the objective is
 to maximize the number of lives saved by transporting individuals to a FOL, is depicted in \autoref{example}.
 
-![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories (white, green, yellow, red, black; black represents deceased). For a full description, see @rempel2024a.\label{example}](arctic_map_mass_evac_joss.png)
+![Evacuation plan via air with medical assistance provided at the evacuation site via ship. Colours of individuals at the evacuation site represent those in different triage categories (white, green, yellow, red, black; black represents deceased). For a full description, see @rempel2024a. Adapted from @rempel2024a.\label{example}](arctic_map_mass_evac_joss.png)
 
 Within this context, `pyMassEvac` may be used to provide decision support to
 defence and security planners in two ways. First, through exploring the impact
@@ -143,7 +143,7 @@ to the evacuation site;
 local facility (such as a ship) in which they will receive medical care, plus
 the time until a decision is made as to which individuals to transfer back to
 the evacuation site;
-- $\eta^{su}$: Total time to transfer individuals from the local facility (such
+- $\eta^{su}$: Total time (hours) to transfer individuals from the local facility (such
 as a ship) in which they are receiving medical care to the evacuation site,
 plus the time until a decision is made as to which individuals to transport to
 the FOL;
@@ -208,7 +208,7 @@ Among the many considerations that must be made when selecting or designing
 a learning algorithm for this environment is that the set of valid actions
 are dependent on both the state variable $S_k$ and the parameters defined
 in the initial state $S_0$---see Section 4.1 of @rempel2024a. The `step`
-function takes this into account and only steps the forward to the next
+function takes this into account and only steps forward to the next
 event if the selected action is valid. However, when using a reinforcement
 learning algorithm a form of invalid action masking [@huang2022a; @hou2023a]
 should also be considered.
