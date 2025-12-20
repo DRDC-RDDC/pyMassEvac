@@ -5,13 +5,12 @@ on:
       - paper/**
       - .github/workflows/draft-pdf.yml
 
-permissions:
-  contents: write
-
 jobs:
   paper:
     runs-on: ubuntu-latest
     name: Paper Draft
+    permissions:
+      contents: write-all
     steps:
       - name: Checkout
         uses: actions/checkout@v4
