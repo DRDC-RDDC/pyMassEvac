@@ -1,0 +1,32 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Rempel
+  given-names: Mark
+  orcid: "https://orcid.org/0000-0002-6248-1722"
+contact:
+- family-names: Rempel
+  given-names: Mark
+  orcid: "https://orcid.org/0000-0002-6248-1722"
+doi: 10.5281/zenodo.18187222
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Rempel
+    given-names: Mark
+    orcid: "https://orcid.org/0000-0002-6248-1722"
+  date-published: 2026-01-11
+  doi: 10.21105/joss.09038
+  issn: 2475-9066
+  issue: 117
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 9038
+  title: "pyMassEvac: A Python package for simulating multi-domain mass
+    evacuation operations"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.09038"
+  volume: 11
+title: "pyMassEvac: A Python package for simulating multi-domain mass
+  evacuation operations"
